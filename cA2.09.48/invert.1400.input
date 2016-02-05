@@ -1,0 +1,68 @@
+L=48
+T=96
+
+OmpNumThreads = 1
+NrZProcs = 3
+NrYProcs = 8
+NrXProcs = 16
+DebugLevel = 2
+
+BCAngleT = 1.0
+
+GaugeConfigInputFile = /zhome/academic/HLRS/nic/xncgkout/work/cA2.09.48/Confs/conf
+UseRelativePrecision = yes
+UseSloppyPrecision = yes
+
+BeginOperator CLOVER
+  CSW = 1.57551
+  2kappaMu = 0.000247122000
+  kappa = 0.137290
+  Solver = ARPACKCG
+  SolverPrecision = 1e-18
+  MaxSolverIterations = 50000
+  AddDownPropagator = no
+  PropagatorPrecision = 32
+  ARPACKCGtolsq1      = 1.e-18
+  ARPACKCGrestolsq    = 8.e-10
+  MaxSolverIterations = 30000
+  ARPACKCGnrhs        = 2496
+  ARPACKCGnrhs1       = 1
+  ARPACKCGnev         = 1400
+  ARPACKCGncv         = 1600
+  ARPACKCGeigmaxiter  = 1000
+  ARPACKCGeigtol      = 1.0e-6
+  ARPACKCGevalsKind   = 1
+  ARPACKAccMode       = 1
+  ARPACKCompEvecs     = 1
+  ARPACKLogFile       = arpacku.log
+  ChebPolyDegree      = 220
+  EVminHPD            = 7.0e-4
+  EVmaxHPD            = 3.5
+EndOperator
+
+BeginOperator CLOVER
+  CSW = 1.57551
+  2kappaMu = -0.000247122000
+  kappa = 0.137290
+  Solver = ARPACKCG
+  SolverPrecision = 1e-18
+  MaxSolverIterations = 50000
+  AddDownPropagator = no
+  PropagatorPrecision = 32
+  ARPACKCGtolsq1      = 1.e-18
+  ARPACKCGrestolsq    = 8.e-10
+  MaxSolverIterations = 30000
+  ARPACKCGnrhs        = 2496
+  ARPACKCGnrhs1       = 1
+  ARPACKCGnev         = 1400
+  ARPACKCGncv         = 1600
+  ARPACKCGeigmaxiter  = 1000
+  ARPACKCGeigtol      = 1.0e-6
+  ARPACKCGevalsKind   = 1
+  ARPACKAccMode       = 1
+  ARPACKCompEvecs     = 1
+  ARPACKLogFile       = arpackd.log
+  ChebPolyDegree      = 220
+  EVminHPD            = 7.0e-4
+  EVmaxHPD            = 3.5
+EndOperator

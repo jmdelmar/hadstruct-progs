@@ -1,0 +1,48 @@
+#!/bin/bash
+#PBS -N _TRAJ_
+#PBS -l nodes=256:ppn=24
+#PBS -l walltime=24:00:00
+###PBS -q multi
+
+module load perftools-base perftools-lite
+module swap PrgEnv-cray PrgEnv-intel
+module load craype-hugepages16M
+ 
+# Change to the direcotry that the job was submitted from
+cd $PBS_O_WORKDIR
+WORK=/zhome/academic/HLRS/nic/xncgkout/work
+
+# Propagator and correlator directories
+PROP_DIR=$WORK/cA2.09.48/Props/_TRAJ_/
+CORR_DIR=$WORK/cA2.09.48/Corr/_TRAJ_/
+
+# create the directories
+mkdir -p $PROP_DIR
+mkdir -p $CORR_DIR
+
+# link sinks list from above
+ln -sf ../sinks.list sinks._TRAJ_.list
+
+# create directory input files
+echo $PROP_DIR > prop._TRAJ_.dir
+echo $CORR_DIR > corr._TRAJ_.dir
+
+# create source position input files
+grep _TRAJ_: ../sources.list | cut -d: -f2 | xargs -n 1 | sed 's@s[xyzt]@ @g' | awk '{print $4, $1, $2, $3}' > sources._TRAJ_.list
+
+# Use grid_order for optimal mapping to machine
+grid_order -R -c 2,3 -g 16,16,8,3 > MPICH_RANK_ORDER
+export MPICH_RANK_REORDER_METHOD=3
+export OMP_NUM_THREADS=1
+### export MPICH_GNI_MAX_EAGER_MSG_SIZE=262144
+### export MPICH_GNI_NUM_BUFS=256
+# Go
+ 
+aprun -n $((256*24)) -N 24 -d 1 -j 1 ../main _TRAJ_ | tee _TRAJ_.log
+
+ret=$?
+if [ $ret -eq 0 ] ; then
+    cd $WORK/cA2.09.48/Corr/ave
+    aprun -n 1 bash -c 'time sh ./combine.sh _TRAJ_'
+fi
+
