@@ -40,9 +40,10 @@ export OMP_NUM_THREADS=1
  
 aprun -n $((256*24)) -N 24 -d 1 -j 1 ../main _TRAJ_ | tee _TRAJ_.log
 
+# If the job finished normally, run the post-processing script
 ret=$?
 if [ $ret -eq 0 ] ; then
-    cd $WORK/cA2.09.48/Corr/ave
-    aprun -n 1 bash -c 'time sh ./combine.sh _TRAJ_'
+    date
+    sh ../post-process.sh _TRAJ_ | nl
+    date
 fi
-
