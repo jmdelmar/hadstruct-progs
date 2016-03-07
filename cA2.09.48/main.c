@@ -12,19 +12,14 @@
 #endif
 
 
-static int write_nuclns_mom_space = 0;
 static int write_nuclns_pos_space = 1;
-
-static int write_mesons_mom_space = 0;
 static int write_mesons_pos_space = 1;
-
-static int write_thrp_mom_space = 0;
 static int write_thrp_pos_space = 1;
 
-static int read_fwd_props = 0;
-static int write_fwd_props = 1;
+static int read_fwd_props = 1;
+static int write_fwd_props = 0;
 
-static int read_bwd_props = 0;
+static int read_bwd_props = 1;
 static int write_bwd_props = 0;
 
 char *
@@ -50,6 +45,37 @@ flt_str(double x)
 
 char flav_str[NF][3] = {"up","dn"};
 
+static void
+invert(qhg_spinor_field psi, qhg_spinor_field eta, int op_id, enum qhg_fermion_bc_time bc)
+{
+  int write_prop = 0;
+  qhg_spinor_field eta_theta = qhg_spinor_field_init(eta.lat, bc);
+  qhg_spinor_field psi_theta = qhg_spinor_field_init(psi.lat, bc);
+  double bc_angle_t;
+  
+  switch(bc) {
+  case PERIODIC:
+    bc_angle_t = 0.0;
+    break;
+  case ANTIPERIODIC:
+    bc_angle_t = 1.0;
+    break;
+  }
+  
+  qhg_spinor_twist_t_bc(eta_theta, eta, -bc_angle_t);
+  
+  tmLQCD_invert((double *) psi_theta.field,
+		(double *) eta_theta.field,
+		op_id, write_prop);
+  
+  qhg_spinor_twist_t_bc(psi, psi_theta, bc_angle_t);
+  
+  qhg_spinor_field_finalize(eta_theta);
+  qhg_spinor_field_finalize(psi_theta);
+  return;
+}
+
+  
 void
 usage(char *argv[])
 {
@@ -72,12 +98,13 @@ main(int argc, char *argv[])
   }
   
   int dims[ND] = {96, 48, 48, 48}; // t,x,y,z
-  int max_mom_sq = 24;  
+  double bc_angle_t = 1.0; // Match tmLQCD's parameter. 
   int n_ape = 50;
   double alpha_ape = 0.5;
   int n_gauss = 50;
   double alpha_gauss = 4.0;
   int source_coords[NSRC][ND];
+  enum qhg_fermion_bc_time bc = ANTIPERIODIC; // Also set this in tmLQCD's input
   qhg_thrp_nn_sink_params thrp_snk[NSNK];
   
   {
@@ -170,13 +197,11 @@ main(int argc, char *argv[])
   qhg_spinor_field sol_sm_u[NS*NC], sol_sm_d[NS*NC];
   for(int sp=0; sp<NS; sp++)
     for(int co=0; co<NC; co++) {
-      sol_u[CS(sp,co)] = qhg_spinor_field_init(lat);
-      sol_d[CS(sp,co)] = qhg_spinor_field_init(lat);
-      sol_sm_u[CS(sp,co)] = qhg_spinor_field_init(lat);
-      sol_sm_d[CS(sp,co)] = qhg_spinor_field_init(lat);
+      sol_u[CS(sp,co)] = qhg_spinor_field_init(lat, bc);
+      sol_d[CS(sp,co)] = qhg_spinor_field_init(lat, bc);
+      sol_sm_u[CS(sp,co)] = qhg_spinor_field_init(lat, bc);
+      sol_sm_d[CS(sp,co)] = qhg_spinor_field_init(lat, bc);
     }
-
-  qhg_mom_list mom_list = qhg_mom_list_init(max_mom_sq);  
 
   /*
     APE string used in filenames
@@ -200,7 +225,8 @@ main(int argc, char *argv[])
     */
     int *sco = &source_coords[isrc][0];
     if(am_io_proc)
-      printf("Source coords (t, x, y, z) = (%d, %d, %d, %d)\n", sco[0], sco[1], sco[2], sco[3]);
+      printf("Source coords (t, x, y, z) = (%d, %d, %d, %d)\n",
+	     sco[0], sco[1], sco[2], sco[3]);
 
     /*
       Source position string to be used in filenames
@@ -224,9 +250,9 @@ main(int argc, char *argv[])
       for(int co=0; co<NC; co++) {
 	if(am_io_proc)
 	  printf("\tcol=%d, spin=%d\n", co, sp);  
-	qhg_spinor_field aux = qhg_spinor_field_init(lat);
+	qhg_spinor_field aux = qhg_spinor_field_init(lat, bc);
 	qhg_point_spinor_field(aux, sco, sp, co);
-	src[CS(sp,co)] = qhg_spinor_field_init(lat);
+	src[CS(sp,co)] = qhg_spinor_field_init(lat, bc);
 	qhg_gauss_smear(src[CS(sp,co)], aux, gf_ape, alpha_gauss, n_gauss);
 	qhg_spinor_field_finalize(aux);
       }
@@ -238,13 +264,10 @@ main(int argc, char *argv[])
     */
     t0 = qhg_stop_watch(0);
     int op[] = {0, 1};
-    int write_prop = 0;
     qhg_spinor_field *sol_f[] = {sol_u, sol_d};
     for(int i=0; i<NS*NC; i++)
       for(int flav=0; flav<NF; flav++)
-	tmLQCD_invert((double *) sol_f[flav][i].field,
-		      (double *) src[i].field,
-		      op[flav], write_prop);
+	invert(sol_f[flav][i], src[i], op[flav], bc_angle_t);
     if(am_io_proc)
       printf("Done up & dn inversion in %g sec\n", qhg_stop_watch(t0));  
     
@@ -292,13 +315,7 @@ main(int argc, char *argv[])
 	printf("Read %s in %g sec\n", propname, qhg_stop_watch(t0));
       free(propname);            
     }
-    
-    /*
-      Twist t-phase to anti-periodic boundary conditions
-    */
-    qhg_spinors_untwist_bc(sol_u, NC*NS, 1.0, sco[0]);
-    qhg_spinors_untwist_bc(sol_d, NC*NS, 1.0, sco[0]);
-    
+        
     /*
       Smear the propagators sink-side
     */
@@ -314,26 +331,17 @@ main(int argc, char *argv[])
       }
     if(am_io_proc)
       printf("Done smearing in %g sec\n", qhg_stop_watch(t0));  
-
-    /*
-      Set bc in spinor structures
-    */
-    _Complex double abc[ND] = {-1,1,1,1};
-    qhg_spinors_set_bc(sol_sm_u, NC*NS, abc);
-    qhg_spinors_set_bc(sol_sm_d, NC*NS, abc);
     
     /*
       Smeared nucleon and meson correlators and fourier transform
     */
     t0 = qhg_stop_watch(0);
     qhg_correlator mesons = qhg_mesons(sol_sm_u, sol_sm_d, sco);
-    qhg_correlator mesons_ft = qhg_ft(mesons, &mom_list, "fwd");
     if(am_io_proc)
       printf("Done meson correlator in %g sec\n", qhg_stop_watch(t0)); 
 
     t0 = qhg_stop_watch(0);    
     qhg_correlator nucleons = qhg_nucleons(sol_sm_u, sol_sm_d, sco);
-    qhg_correlator nucleons_ft = qhg_ft(nucleons, &mom_list, "fwd");
     if(am_io_proc)
       printf("Done nucleon correlator in %g sec\n", qhg_stop_watch(t0)); 
     
@@ -350,17 +358,6 @@ main(int argc, char *argv[])
       free(fname);
     }
     qhg_correlator_finalize(mesons);
-
-    if(write_mesons_mom_space) {
-      t0 = qhg_stop_watch(0);      
-      char *fname;
-      asprintf(&fname, "%s/mesons_mom_%s_%s_%s.txt", corr_dir, srcstr, smrstr, apestr);
-      qhg_write_mom_mesons(fname, mesons_ft);
-      if(am_io_proc)
-	printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0)); 
-      free(fname);
-    }
-    qhg_correlator_finalize(mesons_ft);
     
     if(write_nuclns_pos_space) {
       t0 = qhg_stop_watch(0);
@@ -372,33 +369,14 @@ main(int argc, char *argv[])
       free(fname);
     }
     qhg_correlator_finalize(nucleons);
-
-    if(write_nuclns_mom_space){
-      t0 = qhg_stop_watch(0);
-      char *fname;
-      asprintf(&fname, "%s/nucleons_mom_%s_%s_%s.txt", corr_dir, srcstr, smrstr, apestr);
-      qhg_write_mom_nucleons(fname, nucleons_ft);
-      if(am_io_proc)
-	printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0)); 
-      free(fname);
-    }
-    qhg_correlator_finalize(nucleons_ft);
     
-    /*
-      Twist t-phase to back to twisted boundary conditions
-    */
-    qhg_spinors_untwist_bc(sol_u, NC*NS, -1.0, sco[0]);
-    qhg_spinors_untwist_bc(sol_d, NC*NS, -1.0, sco[0]);
-    qhg_spinors_untwist_bc(sol_sm_u, NC*NS, -1.0, sco[0]);
-    qhg_spinors_untwist_bc(sol_sm_d, NC*NS, -1.0, sco[0]);
-
     /*
       Allocate sequential source and solution
      */
     qhg_spinor_field seq_src[NC*NS], seq_sol[NC*NS];
     for(int i=0; i<NC*NS; i++) {
-      seq_src[i] = qhg_spinor_field_init(lat);
-      seq_sol[i] = qhg_spinor_field_init(lat);
+      seq_src[i] = qhg_spinor_field_init(lat, bc);
+      seq_sol[i] = qhg_spinor_field_init(lat, bc);
     }
     
     /*
@@ -407,154 +385,115 @@ main(int argc, char *argv[])
     for(int isnk=0; isnk<NSNK; isnk++) {
       double sink_timer = qhg_stop_watch(0);
       for(int flav=0; flav<NF; flav++) {
-	/*
-	   Jump to reading backward props if available
-	*/
-	if(read_bwd_props)
-	  goto BREAD;
+    	/*
+    	   Jump to reading backward props if available
+    	*/
+    	if(read_bwd_props)
+    	  goto BREAD;
 
-	t0 = qhg_stop_watch(0);
-	switch(flav) {
-	case up:
-	  qhg_nn_sequential_sink_u(seq_src, sol_sm_u, sol_sm_d, sco[0], thrp_snk[isnk]);
-	  break;
-	case dn:
-	  qhg_nn_sequential_sink_d(seq_src, sol_sm_u, sco[0], thrp_snk[isnk]);
-	  break;
-	}
-	if(am_io_proc)
-	  printf("Done sequential source in %g sec\n", qhg_stop_watch(t0));
+    	t0 = qhg_stop_watch(0);
+    	switch(flav) {
+    	case up:
+    	  qhg_nn_sequential_sink_u(seq_src, sol_sm_u, sol_sm_d, sco[0], thrp_snk[isnk]);
+    	  break;
+    	case dn:
+    	  qhg_nn_sequential_sink_d(seq_src, sol_sm_u, sco[0], thrp_snk[isnk]);
+    	  break;
+    	}
+    	if(am_io_proc)
+    	  printf("Done sequential source in %g sec\n", qhg_stop_watch(t0));
 
-	/*
-	  Smear the sequential source
-	*/
-	t0 = qhg_stop_watch(0);
-	if(am_io_proc)
-	  printf("Smearing the sequential sink, isnk = %2d, Proj = %s, sink-source = %2d, flav = %s\n",
-		 isnk, proj_to_str(thrp_snk[isnk].proj), thrp_snk[isnk].dt, flav_str[flav]);
-	for(int sp=0; sp<NS; sp++)
-	  for(int co=0; co<NC; co++) {
-	    if(am_io_proc)
-	      printf("\tcol=%d, spin=%d\n", co, sp);
-	    qhg_gauss_smear(seq_src[CS(sp,co)], seq_src[CS(sp,co)], gf_ape, alpha_gauss, n_gauss);
-	  }
-	if(am_io_proc)
-	  printf("Done smearing in %g sec\n", qhg_stop_watch(t0));
+    	/*
+    	  Smear the sequential source
+    	*/
+    	t0 = qhg_stop_watch(0);
+    	if(am_io_proc)
+    	  printf("Smearing the sequential sink, isnk = %2d, Proj = %s, sink-source = %2d, flav = %s\n",
+    		 isnk, proj_to_str(thrp_snk[isnk].proj), thrp_snk[isnk].dt, flav_str[flav]);
+    	for(int sp=0; sp<NS; sp++)
+    	  for(int co=0; co<NC; co++) {
+    	    if(am_io_proc)
+    	      printf("\tcol=%d, spin=%d\n", co, sp);
+    	    qhg_gauss_smear(seq_src[CS(sp,co)], seq_src[CS(sp,co)], gf_ape, alpha_gauss, n_gauss);
+    	  }
+    	if(am_io_proc)
+    	  printf("Done smearing in %g sec\n", qhg_stop_watch(t0));
 	
-	t0 = qhg_stop_watch(0);
-	int op_id[2] = {1, 0};
-	for(int i=0; i<NS*NC; i++)
-	  tmLQCD_invert((double *) seq_sol[i].field,
-			(double *) seq_src[i].field,
-			op_id[flav], write_prop);
-	if(am_io_proc)
-	  printf("Done %s sequential inversion in %g sec\n", flav_str[flav], qhg_stop_watch(t0));
+    	t0 = qhg_stop_watch(0);
+    	int op_id[2] = {1, 0};
+    	for(int i=0; i<NS*NC; i++)
+	  invert(seq_sol[i], seq_src[i], op_id[flav], bc_angle_t);
 	
-	/*
-	  Write the propagators if selected
-	*/
-	if(write_bwd_props) {
-	  t0 = qhg_stop_watch(0);
-	  char *propname;
-	  asprintf(&propname, "%s/backprop_%s_%s_dt%02d.%s", prop_dir, srcstr, proj_to_str(thrp_snk[isnk].proj),
-		   thrp_snk[isnk].dt, flav_str[flav]);
-	  qhg_write_spinors(propname, NC*NS, seq_sol);
-	  if(am_io_proc)
-	    printf("Wrote %s in %g sec\n", propname, qhg_stop_watch(t0));
-	  free(propname);
-	}
+    	if(am_io_proc)
+    	  printf("Done %s sequential inversion in %g sec\n", flav_str[flav], qhg_stop_watch(t0));
+	
+    	/*
+    	  Write the propagators if selected
+    	*/
+    	if(write_bwd_props) {
+    	  t0 = qhg_stop_watch(0);
+    	  char *propname;
+    	  asprintf(&propname, "%s/backprop_%s_%s_dt%02d.%s", prop_dir, srcstr, proj_to_str(thrp_snk[isnk].proj),
+    		   thrp_snk[isnk].dt, flav_str[flav]);
+    	  qhg_write_spinors(propname, NC*NS, seq_sol);
+    	  if(am_io_proc)
+    	    printf("Wrote %s in %g sec\n", propname, qhg_stop_watch(t0));
+    	  free(propname);
+    	}
 
       BREAD: if(read_bwd_props) {
-	  t0 = qhg_stop_watch(0);
-	  char *propname;
-	  asprintf(&propname, "%s/backprop_%s_%s_dt%02d.%s", prop_dir, srcstr, proj_to_str(thrp_snk[isnk].proj),
-		   thrp_snk[isnk].dt, flav_str[flav]);
-	  qhg_read_spinors(seq_sol, NC*NS, propname);
-	  if(am_io_proc)
-	    printf("Read %s in %g sec\n", propname, qhg_stop_watch(t0));
-	  free(propname);
-	}
+    	  t0 = qhg_stop_watch(0);
+    	  char *propname;
+    	  asprintf(&propname, "%s/backprop_%s_%s_dt%02d.%s", prop_dir, srcstr, proj_to_str(thrp_snk[isnk].proj),
+    		   thrp_snk[isnk].dt, flav_str[flav]);
+    	  qhg_read_spinors(seq_sol, NC*NS, propname);
+    	  if(am_io_proc)
+    	    printf("Read %s in %g sec\n", propname, qhg_stop_watch(t0));
+    	  free(propname);
+    	}
 	
-	/*
-	  Untwist boundary condition for both forward and backward prop
-	*/
-	qhg_spinor_field *fwd[2] = {sol_u, sol_d};
-	qhg_spinors_untwist_bc(fwd[flav], NC*NS, 1.0, sco[0]);
-	qhg_spinors_untwist_bc(seq_sol, NC*NS, 1.0, sco[0]);
-
-	/*
-	  Backward prop takes a 3x contribution of ts-t0 from three combined props
-	*/
-	double angle = (3.0*thrp_snk[isnk].dt)/dims[0];
-	_Complex double phase = cos(angle*M_PI) - _Complex_I*sin(angle*M_PI);
-	qhg_spinors_ax(phase, seq_sol, NC*NS);
-	/*
-	  backprop = (\gamma_5 backprop)^\dagger
-	 */
-	qhg_prop_field_g5_G(seq_sol);
-	qhg_prop_field_Gdag(seq_sol);
-
-        _Complex double abc[ND] = {-1,1,1,1};
-        qhg_spinors_set_bc(fwd[flav], NC*NS, abc);
-        qhg_spinors_set_bc(seq_sol, NC*NS, abc);
+    	/*
+    	  backprop = (\gamma_5 backprop)^\dagger
+    	 */
+    	qhg_prop_field_g5_G(seq_sol);
+    	qhg_prop_field_Gdag(seq_sol);
+        
+    	qhg_spinor_field *fwd[2] = {sol_u, sol_d};
 	
-	/*
-	  Three-point function. Needs gauge-field for derivative
-	  operators.
-	 */
-	t0 = qhg_stop_watch(0);
-	qhg_thrp_correlator thrp;
-	thrp.corr = qhg_nn_thrp(fwd[flav], seq_sol, gf, sco, thrp_snk[isnk]);
-	thrp.flav = flav;
-	thrp.dt = thrp_snk[isnk].dt;
-	thrp.proj = thrp_snk[isnk].proj;
+    	/*
+    	  Three-point function. Needs gauge-field for derivative
+    	  operators.
+    	 */
+    	t0 = qhg_stop_watch(0);
+    	qhg_thrp_correlator thrp;
+    	thrp.corr = qhg_nn_thrp(fwd[flav], seq_sol, gf, sco, thrp_snk[isnk]);
+    	thrp.flav = flav;
+    	thrp.dt = thrp_snk[isnk].dt;
+    	thrp.proj = thrp_snk[isnk].proj;
 
-	qhg_thrp_correlator thrp_ft;
-	thrp_ft.corr = qhg_ft(thrp.corr, &mom_list, "bwd");
-	thrp_ft.flav = flav;
-	thrp_ft.dt = thrp_snk[isnk].dt;
-	thrp_ft.proj = thrp_snk[isnk].proj;
-	if(am_io_proc)
-	  printf("Done three-point correlator in %g sec\n", qhg_stop_watch(t0));
+    	if(am_io_proc)
+    	  printf("Done three-point correlator in %g sec\n", qhg_stop_watch(t0));
 	
-	/*
-	  Write three-point function
-	 */
-	if(write_thrp_pos_space) {
-	  t0 = qhg_stop_watch(0);
-	  char *fname;
-	  asprintf(&fname, "%s/thrp_%s_%s_%s_%s_dt%02d.%s.h5",
-		   corr_dir, srcstr, smrstr, apestr, proj_to_str(thrp_snk[isnk].proj),
-		   thrp_snk[isnk].dt, flav_str[flav]);
-	  qhg_write_nn_thrp(fname, thrp);
-	  if(am_io_proc)
-	    printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0));
-	  free(fname);
-	}
-	qhg_correlator_finalize(thrp.corr);
-
-	if(write_thrp_mom_space) {
-	  t0 = qhg_stop_watch(0);
-	  char *fname;
-	  asprintf(&fname, "%s/thrp_mom_%s_%s_%s_%s_dt%02d.%s.txt",
-		   corr_dir, srcstr, smrstr, apestr, proj_to_str(thrp_snk[isnk].proj),
-		   thrp_snk[isnk].dt, flav_str[flav]);
-	  qhg_write_mom_nn_thrp(fname, thrp_ft);
-	  if(am_io_proc)
-	    printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0));
-	  free(fname);
-	}
-	qhg_correlator_finalize(thrp_ft.corr);
+    	/*
+    	  Write three-point function
+    	 */
+    	if(write_thrp_pos_space) {
+    	  t0 = qhg_stop_watch(0);
+    	  char *fname;
+    	  asprintf(&fname, "%s/thrp_%s_%s_%s_%s_dt%02d.%s.h5",
+    		   corr_dir, srcstr, smrstr, apestr, proj_to_str(thrp_snk[isnk].proj),
+    		   thrp_snk[isnk].dt, flav_str[flav]);
+    	  qhg_write_nn_thrp(fname, thrp);
+    	  if(am_io_proc)
+    	    printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0));
+    	  free(fname);
+    	}
+    	qhg_correlator_finalize(thrp.corr);
 	
-	/*
-	  Need to twist forward prop, to be used in next sequential
-	  sink
-	 */
-	qhg_spinors_untwist_bc(fwd[flav], NC*NS, -1.0, sco[0]);
       }
       if(am_io_proc)
-	printf("Done sink: proj = %s, sink-source = %2d, in %g sec\n",
-	       proj_to_str(thrp_snk[isnk].proj), thrp_snk[isnk].dt, qhg_stop_watch(sink_timer));
+    	printf("Done sink: proj = %s, sink-source = %2d, in %g sec\n",
+    	       proj_to_str(thrp_snk[isnk].proj), thrp_snk[isnk].dt, qhg_stop_watch(sink_timer));
     }
       
     /*
@@ -570,11 +509,6 @@ main(int argc, char *argv[])
 	     sco[0], sco[1], sco[2], sco[3], qhg_stop_watch(source_timer));
   }
   free(smrstr);
-  
-  /*
-    Destroy momentum list
-  */
-  qhg_mom_list_finalize(mom_list);
   
   /* 
      Destroy spinor- and gauge-fields
