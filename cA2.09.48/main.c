@@ -98,7 +98,6 @@ main(int argc, char *argv[])
   }
   
   int dims[ND] = {96, 48, 48, 48}; // t,x,y,z
-  double bc_angle_t = 1.0; // Match tmLQCD's parameter. 
   int n_ape = 50;
   double alpha_ape = 0.5;
   int n_gauss = 50;
@@ -267,7 +266,7 @@ main(int argc, char *argv[])
     qhg_spinor_field *sol_f[] = {sol_u, sol_d};
     for(int i=0; i<NS*NC; i++)
       for(int flav=0; flav<NF; flav++)
-	invert(sol_f[flav][i], src[i], op[flav], bc_angle_t);
+	invert(sol_f[flav][i], src[i], op[flav], bc);
     if(am_io_proc)
       printf("Done up & dn inversion in %g sec\n", qhg_stop_watch(t0));  
     
@@ -422,7 +421,7 @@ main(int argc, char *argv[])
     	t0 = qhg_stop_watch(0);
     	int op_id[2] = {1, 0};
     	for(int i=0; i<NS*NC; i++)
-	  invert(seq_sol[i], seq_src[i], op_id[flav], bc_angle_t);
+	  invert(seq_sol[i], seq_src[i], op_id[flav], bc);
 	
     	if(am_io_proc)
     	  printf("Done %s sequential inversion in %g sec\n", flav_str[flav], qhg_stop_watch(t0));
