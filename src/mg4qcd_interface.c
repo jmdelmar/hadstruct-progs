@@ -91,43 +91,23 @@ mg4qcd_init(struct run_params rp, qhg_gauge_field gf)
   state.mg_init = mg_init;
   state.mg_params = mg_params;
   state.mg_status = mg_status;
-  
+  state.current_mu_sign = (rp.act.mu >= 0) - (rp.act.mu < 0) == 1 ? minus : up;
   return state;
 }
 
-double
-mg4qcd_get_mu(mg4qcd_state state)
-{
-  return state.mg_params.mu;
-}
-
-double
-mg4qcd_get_coarse_mu(mg4qcd_state state, int i)
-{
-  return state.mg_params.coarse_mu[i];
-}
-
-int
-mg4qcd_get_numb_levels(mg4qcd_state state)
-{
-  return state.mg_params.number_of_levels;
-}
-
 void
-mg4qcd_change_mu(mg4qcd_state *state, double mu, double coarse_mu[])
+mg4qcd_invert(qhg_spinor_field x, qhg_spinor_field b, double eps, enum mu_sign s, mg4qcd_state *state)
 {
-  state->mg_params.mu = mu;
-  for(int i=0; i<state->mg_params.number_of_levels; i++) {
-    state->mg_params.coarse_mu[i] = coarse_mu[i];
+  if(s != state->current_mu_sign) {
+    state->mg_params.mu = -state->mg_params.mu;
+    for(int i=0; i<state->mg_params.number_of_levels; i++) {
+      state->mg_params.coarse_mu[i] = -state->mg_params.coarse_mu[i];
+    }
+    MG4QCD_update_parameters(&state->mg_params, &state->mg_status);
+    state->current_mu_sign = s;
   }
-  MG4QCD_update_parameters(&state->mg_params, &state->mg_status);      
-  return;
-}
 
-void
-mg4qcd_invert(qhg_spinor_field x, qhg_spinor_field b, double eps, mg4qcd_state state)
-{
-  MG4QCD_solve((double *)x.field, (double *)b.field, eps, &state.mg_status);
+  MG4QCD_solve((double *)x.field, (double *)b.field, eps, &state->mg_status);  
   return;
 }
 

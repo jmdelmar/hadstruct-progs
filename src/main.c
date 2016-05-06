@@ -81,11 +81,6 @@ main(int argc, char *argv[])
     printf("Plaquette = %12.10f\n", p);
 
   mg4qcd_state mg_state = mg4qcd_init(rp, gf);
-  double mu = mg4qcd_get_mu(mg_state);
-  int n_levs = mg4qcd_get_numb_levels(mg_state);
-  double coarse_mu[n_levs];
-  for(int i=0; i<n_levs; i++)
-    coarse_mu[i] = mg4qcd_get_coarse_mu(mg_state, i);
   
   /*
     APE smear in 3-dimensions
@@ -179,15 +174,8 @@ main(int argc, char *argv[])
     t0 = qhg_stop_watch(0);
     qhg_spinor_field *sol_f[] = {sol_u, sol_d};
     for(int flav=0; flav<NF; flav++) {
-      int s = flav == 0 ? 1 : -1;
-      double x_mu = s*mu;
-      double x_coarse_mu[n_levs];
-      for(int i=0; i<n_levs; i++)
-	x_coarse_mu[i] = s*coarse_mu[i];
-
-      mg4qcd_change_mu(&mg_state, x_mu, x_coarse_mu);
       for(int i=0; i<NS*NC; i++) {
-	mg4qcd_invert(sol_f[flav][i], src[i], 1e-9, mg_state);
+	mg4qcd_invert(sol_f[flav][i], src[i], 1e-9, flav == 0 ? plus : minus, &mg_state);
       }
     }
     if(am_io_proc)
@@ -291,6 +279,141 @@ main(int argc, char *argv[])
       free(fname);
     }
     qhg_correlator_finalize(nucleons);
+    
+    /*
+      Allocate sequential source and solution
+     */
+    qhg_spinor_field seq_src[NC*NS], seq_sol[NC*NS];
+    for(int i=0; i<NC*NS; i++) {
+      seq_src[i] = qhg_spinor_field_init(lat, bc);
+      seq_sol[i] = qhg_spinor_field_init(lat, bc);
+    }
+    
+    /*
+      Loop over sequential sink parameters
+    */
+    for(int isnk=0; isnk<rp.spos[isrc].nsinks; isnk++) {
+      double sink_timer = qhg_stop_watch(0);
+      qhg_thrp_nn_sink_params thrp_snk = rp.spos[isrc].sinks[isnk];
+      for(int flav=0; flav<NF; flav++) {
+    	/*
+    	   Jump to reading backward props if available
+    	*/
+    	if(read_bwd_props)
+    	  goto BREAD;
+
+    	t0 = qhg_stop_watch(0);
+    	switch(flav) {
+    	case up:
+    	  qhg_nn_sequential_sink_u(seq_src, sol_sm_u, sol_sm_d, sco[0], thrp_snk);
+    	  break;
+    	case dn:
+    	  qhg_nn_sequential_sink_d(seq_src, sol_sm_u, sco[0], thrp_snk);
+    	  break;
+    	}
+    	if(am_io_proc)
+    	  printf("Done sequential source in %g sec\n", qhg_stop_watch(t0));
+
+    	/*
+    	  Smear the sequential source
+    	*/
+    	t0 = qhg_stop_watch(0);
+    	if(am_io_proc)
+    	  printf("Smearing the sequential sink, isnk = %2d, Proj = %s, sink-source = %2d, flav = %s\n",
+    		 isnk, proj_to_str(thrp_snk.proj), thrp_snk.dt, flav_str[flav]);
+    	for(int sp=0; sp<NS; sp++)
+    	  for(int co=0; co<NC; co++) {
+    	    if(am_io_proc)
+    	      printf("\tcol=%d, spin=%d\n", co, sp);
+    	    qhg_gauss_smear(seq_src[CS(sp,co)], seq_src[CS(sp,co)], gf_ape, alpha_gauss, n_gauss);
+    	  }
+    	if(am_io_proc)
+    	  printf("Done smearing in %g sec\n", qhg_stop_watch(t0));
+	
+    	t0 = qhg_stop_watch(0);
+	for(int i=0; i<NS*NC; i++) {
+	  mg4qcd_invert(seq_sol[i], seq_src[i], 1e-9, flav == 0 ? minus : plus, &mg_state);
+	}
+	
+    	if(am_io_proc)
+    	  printf("Done %s sequential inversion in %g sec\n", flav_str[flav], qhg_stop_watch(t0));
+	
+    	/*
+    	  Write the propagators if selected
+    	*/
+    	if(write_bwd_props) {
+    	  t0 = qhg_stop_watch(0);
+    	  char *propname;
+    	  asprintf(&propname, "%s/backprop_%s_%s_dt%02d.%s", rp.prop_dir, srcstr, proj_to_str(thrp_snk.proj),
+    		   thrp_snk.dt, flav_str[flav]);
+    	  qhg_write_spinors(propname, NC*NS, seq_sol);
+    	  if(am_io_proc)
+    	    printf("Wrote %s in %g sec\n", propname, qhg_stop_watch(t0));
+    	  free(propname);
+    	}
+
+      BREAD: if(read_bwd_props) {
+    	  t0 = qhg_stop_watch(0);
+    	  char *propname;
+    	  asprintf(&propname, "%s/backprop_%s_%s_dt%02d.%s", rp.prop_dir, srcstr, proj_to_str(thrp_snk.proj),
+    		   thrp_snk.dt, flav_str[flav]);
+    	  qhg_read_spinors(seq_sol, NC*NS, propname);
+    	  if(am_io_proc)
+    	    printf("Read %s in %g sec\n", propname, qhg_stop_watch(t0));
+    	  free(propname);
+    	}
+	
+    	/*
+    	  backprop = (\gamma_5 backprop)^\dagger
+    	 */
+    	qhg_prop_field_g5_G(seq_sol);
+    	qhg_prop_field_Gdag(seq_sol);
+        
+    	qhg_spinor_field *fwd[2] = {sol_u, sol_d};
+	
+    	/*
+    	  Three-point function. Needs gauge-field for derivative
+    	  operators.
+    	 */
+    	t0 = qhg_stop_watch(0);
+    	qhg_thrp_correlator thrp;
+    	thrp.corr = qhg_nn_thrp(fwd[flav], seq_sol, gf, sco, thrp_snk);
+    	thrp.flav = flav;
+    	thrp.dt = thrp_snk.dt;
+    	thrp.proj = thrp_snk.proj;
+
+    	if(am_io_proc)
+    	  printf("Done three-point correlator in %g sec\n", qhg_stop_watch(t0));
+	
+    	/*
+    	  Write three-point function
+    	 */
+    	if(write_thrp_pos_space) {
+    	  t0 = qhg_stop_watch(0);
+    	  char *fname;
+    	  asprintf(&fname, "%s/thrp_%s_%s_%s_%s_dt%02d.%s.h5",
+    		   rp.corr_dir, srcstr, smrstr, apestr, proj_to_str(thrp_snk.proj),
+    		   thrp_snk.dt, flav_str[flav]);
+    	  qhg_write_nn_thrp(fname, thrp);
+    	  if(am_io_proc)
+    	    printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0));
+    	  free(fname);
+    	}
+    	qhg_correlator_finalize(thrp.corr);
+	
+      }
+      if(am_io_proc)
+    	printf("Done sink: proj = %s, sink-source = %2d, in %g sec\n",
+    	       proj_to_str(thrp_snk.proj), thrp_snk.dt, qhg_stop_watch(sink_timer));
+    }
+      
+    /*
+      Free sequential source and solution
+    */
+    for(int i=0; i<NC*NS; i++) {
+      qhg_spinor_field_finalize(seq_src[i]);
+      qhg_spinor_field_finalize(seq_sol[i]);
+    }
     free(srcstr);
     if(am_io_proc)
       printf("Done source, coords (t, x, y, z) = (%d, %d, %d, %d), in %g sec\n",
