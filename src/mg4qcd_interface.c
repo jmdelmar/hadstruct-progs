@@ -36,6 +36,24 @@ vector_index_fct(int t, int z, int y, int x) {
   return pos*size_per_pos;
 }
 
+static int
+cart_rank(MPI_Comm comm, const int *c, int *rank) {
+  int coords[] = {c[0], c[3], c[2], c[1]};
+  int ierr = MPI_Cart_rank(comm, coords, rank);
+  return ierr;
+}
+
+static int
+cart_coords(MPI_Comm comm, int rank, int maxrank, int coords[ND]) {
+  int c[ND];
+  int ierr = MPI_Cart_coords(comm, rank, maxrank, c);
+  coords[0] = c[0];
+  coords[3] = c[1];
+  coords[2] = c[2];
+  coords[1] = c[3];
+  return ierr;
+}
+
 mg4qcd_state
 mg4qcd_init(struct run_params rp, qhg_gauge_field gf)
 {
@@ -50,8 +68,8 @@ mg4qcd_init(struct run_params rp, qhg_gauge_field gf)
   MG4QCD_Parameters mg_params;
   MG4QCD_Status mg_status;
   mg_init.comm_cart = gf.lat->comms->comm;
-  mg_init.Cart_rank = NULL;
-  mg_init.Cart_coords = NULL;
+  mg_init.Cart_rank = cart_rank;
+  mg_init.Cart_coords = cart_coords;
   mg_init.global_lattice[0] = gf.lat->dims[0];
   mg_init.global_lattice[1] = gf.lat->dims[3];
   mg_init.global_lattice[2] = gf.lat->dims[2];
@@ -91,7 +109,7 @@ mg4qcd_init(struct run_params rp, qhg_gauge_field gf)
   state.mg_init = mg_init;
   state.mg_params = mg_params;
   state.mg_status = mg_status;
-  state.current_mu_sign = (rp.act.mu >= 0) - (rp.act.mu < 0) == 1 ? minus : up;
+  state.current_mu_sign = (rp.act.mu >= 0) - (rp.act.mu < 0) == 1 ? plus : minus;
   return state;
 }
 
