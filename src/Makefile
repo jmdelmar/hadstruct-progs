@@ -1,9 +1,9 @@
 AR=ar
 RANLIB=ranlib
-CC=mpicc
-CFLAGS=-O2 -I./ -std=gnu99 -I$(HOME)/loc-install/include  -fopenmp -I$(HOME)/QuaHoG/lib -I$(HOME)/MG4QCD/include
+CC=cc
+CFLAGS=-O2 -I./ -I$(HOME)/loc-install/include -I$(HOME)/QuaHoG/lib -I$(HOME)/MG4QCD/include
 LDFLAGS=-L$(HOME)/loc-install/lib -L$(HOME)/MG4QCD/lib -L$(HOME)/QuaHoG/lib
-LIBS=-llime -fopenmp -lqhg -lmg4qcd -lhdf5 -lmxml
+LIBS=-lqhg -lmg4qcd -lhdf5 -lmxml -llime
 
 all: main
 

@@ -99,6 +99,7 @@ mg4qcd_init(struct run_params rp, qhg_gauge_field gf)
   mg_params.print = rp.mg.verbosity;
   mg_params.conf_index_fct = conf_index_fct;  
   mg_params.vector_index_fct = vector_index_fct;  
+  mg_params.mixed_precision = 1;
   MG4QCD_update_parameters(&mg_params, &mg_status);
   MG4QCD_set_configuration( (double*) &(gf.field[0]), &mg_status);
   if(gf.lat->comms->proc_id == 0)
