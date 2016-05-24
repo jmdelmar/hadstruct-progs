@@ -1,0 +1,40 @@
+#!/bin/bash
+#PBS -N _TRAJS_
+#PBS -l nodes=24:ppn=24
+#PBS -l walltime=6:00:00
+###PBS -q multi
+
+module load craype-hugepages16M
+
+# Change to the direcotry that the job was submitted from
+cd $PBS_O_WORKDIR
+WORK=/zhome/academic/HLRS/nic/xncgkout/work/
+
+n_concurrent=1
+traj_sets=($(echo _TRAJS_|sed 's@+@ @g'|xargs -n $n_concurrent|sed 's@ @,@g'))
+for traj_set in ${traj_sets[*]} ; do
+    traj_set=($(echo $traj_set|sed 's@,@ @g'))
+    for traj in ${traj_set[*]} ; do
+	# Propagator and correlator directories
+	PROP_DIR=$WORK/cA2.09.48/Props/$traj/
+	CORR_DIR=$WORK/cA2.09.48/Corr/$traj/
+	
+	# create the directories
+	mkdir -p $PROP_DIR
+	mkdir -p $CORR_DIR
+
+	export OMP_NUM_THREADS=1	
+	# Go
+	
+	mkdir $traj
+	cd $traj 
+	aprun -n $((24*24)) -N 24 -d 1 -j 1 ../../../src/main ../${traj}-2.ini.xml >& ${traj}.log &
+	cd ../
+    done
+    wait
+    for traj in ${traj_set[*]} ; do
+	date
+	sh ../post-process.sh ${traj} | nl
+	date
+    done
+done
