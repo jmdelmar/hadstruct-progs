@@ -4,7 +4,6 @@ CC=mpicc
 CFLAGS=-O2 -I./ -std=gnu99 -I$(HOME)/loc-install/include  -fopenmp -I$(HOME)/QuaHoG/lib -I$(HOME)/DDalphaAMG/include
 LDFLAGS=-L$(HOME)/loc-install/lib -L$(HOME)/DDalphaAMG/lib -L$(HOME)/QuaHoG/lib
 LIBS=-llime -fopenmp -lqhg -lDDalphaAMG -lhdf5 -lmxml
-
 all: main
 
 QHG=$(HOME)/QuaHoG/lib/libqhg.a
