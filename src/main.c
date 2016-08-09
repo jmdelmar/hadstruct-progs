@@ -6,7 +6,7 @@
 #include <math.h>
 #include <qhg.h>
 #include <parser.h>
-#include <mg4qcd_interface.h>
+#include <mg_interface.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846264338327950288
@@ -80,7 +80,7 @@ main(int argc, char *argv[])
   if(am_io_proc)
     printf("Plaquette = %12.10f\n", p);
 
-  mg4qcd_state mg_state = mg4qcd_init(rp, gf);
+  mg_state mg_state = mg_init(rp, gf);
   
   /*
     APE smear in 3-dimensions
@@ -175,7 +175,7 @@ main(int argc, char *argv[])
     qhg_spinor_field *sol_f[] = {sol_u, sol_d};
     for(int flav=0; flav<NF; flav++) {
       for(int i=0; i<NS*NC; i++) {
-	mg4qcd_invert(sol_f[flav][i], src[i], 1e-9, flav == 0 ? plus : minus, &mg_state);
+	mg_invert(sol_f[flav][i], src[i], 1e-9, flav == 0 ? plus : minus, &mg_state);
       }
     }
     if(am_io_proc)
@@ -332,7 +332,7 @@ main(int argc, char *argv[])
 	
     	t0 = qhg_stop_watch(0);
 	for(int i=0; i<NS*NC; i++) {
-	  mg4qcd_invert(seq_sol[i], seq_src[i], 1e-9, flav == 0 ? minus : plus, &mg_state);
+	  mg_invert(seq_sol[i], seq_src[i], 1e-9, flav == 0 ? minus : plus, &mg_state);
 	}
 	
     	if(am_io_proc)
@@ -421,7 +421,7 @@ main(int argc, char *argv[])
   }
   free(smrstr);
 
-  mg4qcd_finalize();
+  mg_finalize();
   
   /* 
      Destroy spinor- and gauge-fields
