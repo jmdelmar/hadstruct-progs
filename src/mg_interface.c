@@ -91,7 +91,6 @@ mg_init(struct run_params rp, qhg_gauge_field gf)
   init.init_file = NULL;
   init.rnd_seeds = NULL;
   DDalphaAMG_initialize(&init, &params, &status);  
-  printf("Initialized %d levels in %.2f sec\n", status.success, status.time);
 
 
   for(int i=0; i<rp.mg.n_levels; i++) {
@@ -99,19 +98,16 @@ mg_init(struct run_params rp, qhg_gauge_field gf)
     params.mg_basis_vectors[i] = rp.mg.n_basis_vectors[i];
     params.mu_factor[i] = rp.mg.coarse_mu[i]/rp.act.mu;
   }
-  
+
+  params.mu_odd_shift = 0;
+  params.mu_even_shift = 0;
+  params.mixed_precision = 1;
   params.print = rp.mg.verbosity;
   params.conf_index_fct = conf_index_fct;  
   params.vector_index_fct = vector_index_fct;  
   DDalphaAMG_update_parameters(&params, &status);
-  if (status.success)
-    printf("Updating time %.2f sec\n", status.time);
 
   DDalphaAMG_set_configuration( (double*) &(gf.field[0]), &status);
-  if(gf.lat->comms->proc_id == 0)
-    printf("Plaquette according to MG4QCD = %12.10f\n", status.info);
-
-  printf("Setting configuration time %.2f sec\n", status.time);
 
   
   DDalphaAMG_setup(&status);
@@ -129,9 +125,9 @@ mg_invert(qhg_spinor_field x, qhg_spinor_field b, double eps, enum mu_sign s, mg
 {
   if(s != state->current_mu_sign) {
     state->params.mu = -state->params.mu;
-    for(int i=0; i<state->init.number_of_levels; i++) {
-      state->params.mu_factor[i] = -state->params.mu_factor[i];
-    }
+    /* for(int i=0; i<state->init.number_of_levels; i++) { */
+    /*   state->params.mu_factor[i] = -state->params.mu_factor[i]; */
+    /* } */
     DDalphaAMG_update_parameters(&state->params, &state->status);
     state->current_mu_sign = s;
   }
