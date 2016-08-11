@@ -1,5 +1,6 @@
 #include <mpi.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <complex.h>
@@ -11,16 +12,6 @@
 #ifndef M_PI
 #define M_PI 3.14159265358979323846264338327950288
 #endif
-
-static int write_nuclns_pos_space = 1;
-static int write_mesons_pos_space = 1;
-static int write_thrp_pos_space = 1;
-
-static int read_fwd_props = 0;
-static int write_fwd_props = 0;
-
-static int read_bwd_props = 0;
-static int write_bwd_props = 0;
 
 #define NF 2
 char flav_str[NF][3] = {"up","dn"};
@@ -142,12 +133,6 @@ main(int argc, char *argv[])
     */
     char *srcstr;
     asprintf(&srcstr, "sx%02dsy%02dsz%02dst%02d", sco[1], sco[2], sco[3], sco[0]);
-
-    /*
-      Jump to reading forward props if available
-     */
-    if(read_fwd_props)
-      goto FREAD;
     
     /*
       Smear the source for this source position
@@ -182,49 +167,10 @@ main(int argc, char *argv[])
       printf("Done up & dn inversion in %g sec\n", qhg_stop_watch(t0));  
     
     /*
-      Write the propagators if selected
-    */
-    if(write_fwd_props) {
-      char *propname;
-
-      t0 = qhg_stop_watch(0);
-      asprintf(&propname, "%s/prop_%s.up", rp.prop_dir, srcstr);      
-      qhg_write_spinors(propname, NC*NS, sol_u);
-      if(am_io_proc)
-	printf("Wrote %s in %g sec\n", propname, qhg_stop_watch(t0));
-      free(propname);
-      
-      t0 = qhg_stop_watch(0);
-      asprintf(&propname, "%s/prop_%s.dn", rp.prop_dir, srcstr);      
-      qhg_write_spinors(propname, NC*NS, sol_d);
-      if(am_io_proc)
-	printf("Wrote %s in %g sec\n", propname, qhg_stop_watch(t0));
-      free(propname);
-    }
-        
-    /*
       We don't need the source any more
     */
     for(int i=0; i<NS*NC; i++)
       qhg_spinor_field_finalize(src[i]);
-
-  FREAD: if(read_fwd_props) {
-      char *propname;
-
-      t0 = qhg_stop_watch(0);      
-      asprintf(&propname, "%s/prop_%s.up", rp.prop_dir, srcstr);      
-      qhg_read_spinors(sol_u, NC*NS, propname);
-      if(am_io_proc)
-	printf("Read %s in %g sec\n", propname, qhg_stop_watch(t0));
-      free(propname);
-      
-      t0 = qhg_stop_watch(0);      
-      asprintf(&propname, "%s/prop_%s.dn", rp.prop_dir, srcstr);      
-      qhg_read_spinors(sol_d, NC*NS, propname);
-      if(am_io_proc)
-	printf("Read %s in %g sec\n", propname, qhg_stop_watch(t0));
-      free(propname);            
-    }
         
     /*
       Smear the propagators sink-side
@@ -247,36 +193,44 @@ main(int argc, char *argv[])
     */
     t0 = qhg_stop_watch(0);
     qhg_correlator mesons = qhg_mesons(sol_sm_u, sol_sm_d, sco);
+    qhg_correlator_shift(mesons, mesons.origin);
     if(am_io_proc)
       printf("Done meson correlator in %g sec\n", qhg_stop_watch(t0)); 
 
     t0 = qhg_stop_watch(0);    
     qhg_correlator nucleons = qhg_nucleons(sol_sm_u, sol_sm_d, sco);
+    qhg_correlator_shift(nucleons, nucleons.origin);
     if(am_io_proc)
       printf("Done nucleon correlator in %g sec\n", qhg_stop_watch(t0)); 
     
     /*
       Write the correlators
     */
-    if(write_mesons_pos_space) {
+    if(true) {
       t0 = qhg_stop_watch(0);      
       char *fname;
       asprintf(&fname, "%s/mesons_%s_%s_%s.h5", rp.corr_dir, srcstr, smrstr, apestr);
-      qhg_write_mesons(fname, mesons);
+      char *group;
+      asprintf(&group, "mesons/%s/", srcstr);      
+      qhg_write_mesons(fname, mesons, group);
       if(am_io_proc)
 	printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0)); 
       free(fname);
+      free(group);
     }
     qhg_correlator_finalize(mesons);
     
-    if(write_nuclns_pos_space) {
+    if(true) {
       t0 = qhg_stop_watch(0);
       char *fname;
       asprintf(&fname, "%s/nucleons_%s_%s_%s.h5", rp.corr_dir, srcstr, smrstr, apestr);
-      qhg_write_nucleons(fname, nucleons);
+      char *group;
+      asprintf(&group, "nucleons/%s/", srcstr);      
+      qhg_write_nucleons(fname, nucleons, group);
       if(am_io_proc)
 	printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0)); 
       free(fname);
+      free(group);
     }
     qhg_correlator_finalize(nucleons);
     
@@ -296,12 +250,6 @@ main(int argc, char *argv[])
       double sink_timer = qhg_stop_watch(0);
       qhg_thrp_nn_sink_params thrp_snk = rp.spos[isrc].sinks[isnk];
       for(int flav=0; flav<NF; flav++) {
-    	/*
-    	   Jump to reading backward props if available
-    	*/
-    	if(read_bwd_props)
-    	  goto BREAD;
-
     	t0 = qhg_stop_watch(0);
     	switch(flav) {
     	case up:
@@ -337,32 +285,7 @@ main(int argc, char *argv[])
 	
     	if(am_io_proc)
     	  printf("Done %s sequential inversion in %g sec\n", flav_str[flav], qhg_stop_watch(t0));
-	
-    	/*
-    	  Write the propagators if selected
-    	*/
-    	if(write_bwd_props) {
-    	  t0 = qhg_stop_watch(0);
-    	  char *propname;
-    	  asprintf(&propname, "%s/backprop_%s_%s_dt%02d.%s", rp.prop_dir, srcstr, proj_to_str(thrp_snk.proj),
-    		   thrp_snk.dt, flav_str[flav]);
-    	  qhg_write_spinors(propname, NC*NS, seq_sol);
-    	  if(am_io_proc)
-    	    printf("Wrote %s in %g sec\n", propname, qhg_stop_watch(t0));
-    	  free(propname);
-    	}
-
-      BREAD: if(read_bwd_props) {
-    	  t0 = qhg_stop_watch(0);
-    	  char *propname;
-    	  asprintf(&propname, "%s/backprop_%s_%s_dt%02d.%s", rp.prop_dir, srcstr, proj_to_str(thrp_snk.proj),
-    		   thrp_snk.dt, flav_str[flav]);
-    	  qhg_read_spinors(seq_sol, NC*NS, propname);
-    	  if(am_io_proc)
-    	    printf("Read %s in %g sec\n", propname, qhg_stop_watch(t0));
-    	  free(propname);
-    	}
-	
+		
     	/*
     	  backprop = (\gamma_5 backprop)^\dagger
     	 */
@@ -388,16 +311,22 @@ main(int argc, char *argv[])
     	/*
     	  Write three-point function
     	 */
-    	if(write_thrp_pos_space) {
+    	if(true) {
     	  t0 = qhg_stop_watch(0);
     	  char *fname;
     	  asprintf(&fname, "%s/thrp_%s_%s_%s_%s_dt%02d.%s.h5",
     		   rp.corr_dir, srcstr, smrstr, apestr, proj_to_str(thrp_snk.proj),
     		   thrp_snk.dt, flav_str[flav]);
-    	  qhg_write_nn_thrp(fname, thrp);
+	  char *group;
+    	  asprintf(&group, "thrp/%s/%s/dt%02d/%s",
+    		   srcstr, proj_to_str(thrp_snk.proj),
+    		   thrp_snk.dt, flav_str[flav]);
+	  qhg_correlator_shift(thrp.corr, thrp.corr.origin);
+    	  qhg_write_nn_thrp(fname, thrp, group);
     	  if(am_io_proc)
     	    printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0));
     	  free(fname);
+	  free(group);
     	}
     	qhg_correlator_finalize(thrp.corr);
 	
