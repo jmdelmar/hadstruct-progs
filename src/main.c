@@ -49,16 +49,18 @@ main(int argc, char *argv[])
   }
 
   struct run_params rp = parse_input(argv[1]);
-  int n_ape = 50;
-  double alpha_ape = 0.5;
-  int n_gauss = 50;
-  double alpha_gauss = 4.0;
+
+  int n_ape = rp.smearing.n_ape;
+  double alpha_ape = rp.smearing.alpha_ape;
+  int n_gauss = rp.smearing.n_gauss;
+  double alpha_gauss = rp.smearing.alpha_gauss;
+  
   enum qhg_fermion_bc_time bc = ANTIPERIODIC; // Also set this in tmLQCD's input
   qhg_comms *comms = qhg_comms_init(rp.procs);  
   qhg_lattice *lat = qhg_lattice_init(rp.dims, comms);
   int am_io_proc = lat->comms->proc_id == 0 ? 1 : 0;
   qhg_gauge_field gf = qhg_gauge_field_init(lat);  
-
+  
   /*
     Read config 
   */

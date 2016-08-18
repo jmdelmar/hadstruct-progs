@@ -5,6 +5,12 @@
   <config> ./conf.0000 </config>
   <props-dir> ./ </props-dir>
   <corrs-dir> ./ </corrs-dir>
+  <smearing>
+    <n_ape> 50 </n_ape>
+    <alpha_ape> 0.5 </alpha_ape>
+    <n_gauss> 50 </n_gauss>
+    <alpha_gauss> 4.0 </alpha_gauss>
+  </smearing>
   <action>
     <mu> 0.0009 </mu>
     <kappa> 0.137290 </kappa>

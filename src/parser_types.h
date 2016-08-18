@@ -23,12 +23,20 @@ struct multigrid_params {
   int verbosity;
 };
 
+struct smearing_params {
+  int n_gauss;
+  double alpha_gauss;
+  int n_ape;
+  double alpha_ape;
+};
+
 struct run_params {
   char config[256];
   char prop_dir[256];
   char corr_dir[256];  
   int dims[ND], procs[ND];
   int nsp;
+  struct smearing_params smearing;
   struct source_position *spos;
   struct multigrid_params mg;
   struct action_params act;
