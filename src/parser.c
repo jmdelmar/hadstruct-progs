@@ -240,6 +240,55 @@ parse_input(char fname[])
       isp++;
     }
   }
+
+  struct smearing_params s;
+  {
+    /* 
+       Get the smearing parameters
+    */
+    mxml_node_t *snode = mxmlFindElement(node, node, "smearing", NULL, NULL, MXML_DESCEND);
+    /* First as strings */
+    const char *alpha_ape = mxmlGetOpaque(mxmlFindPath(snode, "alpha_ape"));
+    const char *alpha_gauss = mxmlGetOpaque(mxmlFindPath(snode, "alpha_gauss"));
+    const char *n_ape = mxmlGetOpaque(mxmlFindPath(snode, "n_ape"));
+    const char *n_gauss = mxmlGetOpaque(mxmlFindPath(snode, "n_gauss"));
+
+    if(alpha_ape == NULL) {
+      exit_tag_not_found("smearing/alpha_ape", fname);
+    }
+    if(alpha_gauss == NULL) {
+      exit_tag_not_found("smearing/alpha_gauss", fname);
+    }
+    if(n_ape == NULL) {
+      exit_tag_not_found("smearing/n_ape", fname);
+    }
+    if(n_gauss == NULL) {
+      exit_tag_not_found("smearing/n_gauss", fname);
+    }
+
+    /* Convert to float. Check for errors */
+    char *e;
+    s.alpha_ape = strtod(alpha_ape, &e);
+    if(e == alpha_ape) {
+      exit_convertions_error("smearing/alpha_ape", fname, alpha_ape);
+    } 
+
+    s.alpha_gauss = strtod(alpha_gauss, &e);
+    if(e == alpha_gauss) {
+      exit_convertions_error("smearing/alpha_gauss", fname, alpha_gauss);
+    }
+    
+    s.n_ape = strtoul(n_ape, &e, 10);
+    if(e == n_ape) {
+      exit_convertions_error("smearing/n_ape", fname, n_ape);
+    } 
+
+    s.n_gauss = strtoul(n_gauss, &e, 10);
+    if(e == n_gauss) {
+      exit_convertions_error("smearing/n_gauss", fname, n_gauss);
+    } 
+  }
+
   struct run_params rp;
   sscanf(d, "%d %d %d %d",
 	 &rp.dims[0],
@@ -257,7 +306,9 @@ parse_input(char fname[])
   rp.act = a;
   rp.mg = mg;
   rp.spos = r;
-  rp.nsp = nsp;  
+  rp.nsp = nsp;
+  rp.smearing = s;
+  
   fclose(fp);
   mxmlDelete(tree);
   return rp;
