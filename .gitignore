@@ -1,5 +1,7 @@
 main
 bench-mg
+bench-mg-64c128
+bench-mg-48c96
 cA2.09.48/[0-9][0-9][0-9][0-9]
 *~
 *.o

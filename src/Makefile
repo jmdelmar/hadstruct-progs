@@ -3,7 +3,7 @@ RANLIB=ranlib
 CC=mpicc
 
 #... Adjust according to compiler
-CFLAGS=-O2 -I./ -std=gnu99 -fopenmp -I$(HOME)/loc-install/include -I$(HOME)/DDalphaAMG/include
+CFLAGS=-O2 -I./ -std=gnu99 -fopenmp
 
 #... Path to qhg.h
 QHG_INC=-I$(HOME)/QuaHoG/lib
@@ -22,39 +22,42 @@ MG_INC=-I$(HOME)/DDalphaAMG/include
 CFLAGS+=$(MG_INC)
 
 #... Path to hdf5.h
-HDF5_INC=
+HDF5_INC=-I$(HDF5_BASE)/include
 CFLAGS+=$(HDF5_INC)
 
 #... Paths to libraries
 LDFLAGS=
 
-#... Path to qhg.h
+#... Path to libqhg.a
 QHG_LIB=-L$(HOME)/QuaHoG/lib
 LDFLAGS+=$(QHG_LIB)
 
-#... Path to lime.h
+#... Path to liblime.a
 LIME_LIB=-L$(HOME)/loc-install/lib
 LDFLAGS+=$(LIME_LIB)
 
-#... Path to mxml.h
+#... Path to libmxml.a
 MXML_LIB=-L$(HOME)/loc-install/lib
 LDFLAGS+=$(MXML_LIB)
 
-#... Path to DDalphaAMG.h
+#... Path to libDDalphaAMG.a
 MG_LIB=-L$(HOME)/DDalphaAMG/lib
 LDFLAGS+=$(MG_LIB)
 
-#... Path to hdf5.h
-HDF5_LIB=
+#... Path to libhdf5.a
+HDF5_LIB=-L$(HDF5_BASE)/lib
 LDFLAGS+=$(HDF5_LIB)
 
 #... Order may matter depending on compiler
-LIBS=-llime -fopenmp -lqhg -lDDalphaAMG -lhdf5 -lmxml
+LIBS=-fopenmp -lqhg -lDDalphaAMG -llime -lmxml -lhdf5
 
 # Targets
-targets: bench-mg
+targets: bench-mg-64c128 bench-mg-48c96
 
-bench-mg: bench-mg.o mg_interface.o
+bench-mg-48c96: bench-mg-48c96.o mg_interface.o
+	$(CC) $(CFLAGS) -o $@ $< mg_interface.o $(LDFLAGS) $(LIBS)
+
+bench-mg-64c128: bench-mg-64c128.o mg_interface.o
 	$(CC) $(CFLAGS) -o $@ $< mg_interface.o $(LDFLAGS) $(LIBS)
 
 %.o: %.c

@@ -43,41 +43,43 @@ main(int argc, char *argv[])
     exit(1);
   }
 
-  int procs[] = {2, 1, 1, 1};
-  int dims[] = {8, 8, 8, 8};
+  char data_dir[] = "/gpfs/work/pr74yo/di56sof3/";
+
+  int procs[] = {8, 4, 4, 4};
+  int dims[] = {96, 48, 48, 48};
   int n_ape = 50;
   double alpha_ape = 0.5;
-  int n_gauss = 90;
-  double alpha_gauss = 0.2;
+  int n_gauss = 50;
+  double alpha_gauss = 4.0;
   int nsinks = 2;
   qhg_thrp_nn_sink_params sinks[nsinks];
   sinks[0].proj = P0;
-  sinks[0].dt = 3;
+  sinks[0].dt = 11;
   sinks[1].proj = P3;
-  sinks[1].dt = 4;
+  sinks[1].dt = 13;
 
   struct action_params act_params;
   double mu = 0.0009;
   double csw = 1.57551;
-  double kappa = 0.1372938;
+  double kappa = 0.13729;
   act_params.mu = mu;
   act_params.kappa = kappa;
   act_params.csw = csw;
   act_params.bc = 1;
   
   struct multigrid_params mg_params;
-  mg_params.n_levels = 2;
-  mg_params.block[0] = 2;
-  mg_params.block[1] = 2;
-  mg_params.block[2] = 2;
-  mg_params.block[3] = 2;
-  mg_params.setup_iterations[0] = 3;
-  mg_params.setup_iterations[1] = 3;
-  mg_params.n_basis_vectors[0] = 8;
-  mg_params.n_basis_vectors[1] = 8;
-  mg_params.coarse_mu[0] = mu*1.;
-  mg_params.coarse_mu[1] = mu*2.1;
-  mg_params.verbosity = 0;
+  mg_params.n_levels = 3;
+  mg_params.block[0] = 6;
+  mg_params.block[1] = 6;
+  mg_params.block[2] = 6;
+  mg_params.block[3] = 6;
+  mg_params.setup_iterations[0] = 5;
+  mg_params.setup_iterations[1] = 5;
+  mg_params.n_basis_vectors[0] = 40;
+  mg_params.n_basis_vectors[1] = 40;
+  mg_params.coarse_mu[1] = mu*1.0;
+  mg_params.coarse_mu[2] = mu*4.1;
+  mg_params.verbosity = 3;
     
   enum qhg_fermion_bc_time bc = ANTIPERIODIC; // Also set this in tmLQCD's input
   qhg_comms *comms = qhg_comms_init(procs);  
@@ -88,7 +90,9 @@ main(int argc, char *argv[])
   /*
     Read config 
   */
-  qhg_read_gauge_field_ildg(gf, "./conf.0000");
+  char *conf_name;
+  asprintf(&conf_name, "%s/%s", data_dir, "conf_48c96.2556");
+  qhg_read_gauge_field_ildg(gf, conf_name);
   
   /*
     Plaquette 
@@ -232,7 +236,7 @@ main(int argc, char *argv[])
   if(true) {
     t0 = qhg_stop_watch(0);      
     char *fname;
-    asprintf(&fname, "%s/mesons_%s_%s_%s.h5", "./", srcstr, smrstr, apestr);
+    asprintf(&fname, "%s/mesons_%s_%s_%s.h5", data_dir, srcstr, smrstr, apestr);
     char *group;
     asprintf(&group, "mesons/%s/", srcstr);      
     qhg_write_mesons(fname, mesons, group);
@@ -250,7 +254,7 @@ main(int argc, char *argv[])
   if(true) {
     t0 = qhg_stop_watch(0);
     char *fname;
-    asprintf(&fname, "%s/nucleons_%s_%s_%s.h5", "./", srcstr, smrstr, apestr);
+    asprintf(&fname, "%s/nucleons_%s_%s_%s.h5", data_dir, srcstr, smrstr, apestr);
     char *group;
     asprintf(&group, "nucleons/%s/", srcstr);      
     qhg_write_nucleons(fname, nucleons, group);
@@ -346,7 +350,7 @@ main(int argc, char *argv[])
 	t0 = qhg_stop_watch(0);
 	char *fname;
 	asprintf(&fname, "%s/thrp_%s_%s_%s_%s_dt%02d.%s.h5",
-		 "./", srcstr, smrstr, apestr, proj_to_str(thrp_snk.proj),
+		 data_dir, srcstr, smrstr, apestr, proj_to_str(thrp_snk.proj),
 		 thrp_snk.dt, flav_str[flav]);
 	char *group;
 	asprintf(&group, "thrp/%s/%s/dt%02d/%s",
