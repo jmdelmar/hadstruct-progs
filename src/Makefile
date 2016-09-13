@@ -52,7 +52,10 @@ LDFLAGS+=$(HDF5_LIB)
 LIBS=-fopenmp -lqhg -lDDalphaAMG -llime -lmxml -lhdf5
 
 # Targets
-targets: bench-mg-64c128 bench-mg-48c96
+targets: bench-mg-64c128 bench-mg-48c96 bench-mg-8c8
+
+bench-mg-8c8: bench-mg-8c8.o mg_interface.o
+	$(CC) $(CFLAGS) -o $@ $< mg_interface.o $(LDFLAGS) $(LIBS)
 
 bench-mg-48c96: bench-mg-48c96.o mg_interface.o
 	$(CC) $(CFLAGS) -o $@ $< mg_interface.o $(LDFLAGS) $(LIBS)
