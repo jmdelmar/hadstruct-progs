@@ -1,20 +1,58 @@
 #! /usr/bin/ksh
 #@ shell = /usr/bin/ksh
-#@ job_type = MPICH 
+#@ output = $(job_name).$(jobid).$(stepid).out
+#@ error =  $(job_name).$(jobid).$(stepid).err
 #@ initialdir = /home/hpc/pr74yo/di56sof3/hadstruct-progs/cA2.XX.64/mu0p0009
 #@ job_name = _REPL_-_TRAJ_
 #@ class = general
+#@ node_usage = not_shared
+##################################################################
+#@ step_name = source_0_3
+#@ wall_clock_limit = 06:40:00
+#@ network.MPI = sn_all,not_shared,us
 #@ energy_policy_tag = MG_64c128
 #@ minimize_time_to_solution = yes
-#@ node_usage = not_shared
-#@ wall_clock_limit = 26:00:00
-#@ network.MPI = sn_all,,us,,
+#@ job_type = parallel
 #@ notification = never
-#@ output = $(job_name).$(jobid).out
-#@ error =  $(job_name).$(jobid).err
-#@ node = 74
-#@ island_count=1,1
-#@ total_tasks = 2048
+#@ node = 147
+#@ island_count = 1,1
+#@ total_tasks = 4096
+#@ queue
+##################################################################
+#@ step_name = source_4_7
+#@ wall_clock_limit = 06:40:00
+#@ network.MPI = sn_all,not_shared,us
+#@ energy_policy_tag = MG_64c128
+#@ minimize_time_to_solution = yes
+#@ job_type = parallel
+#@ notification = never
+#@ node = 147
+#@ island_count = 1,1
+#@ total_tasks = 4096
+#@ queue
+##################################################################
+#@ step_name = source_8_11
+#@ wall_clock_limit = 06:40:00
+#@ energy_policy_tag = MG_64c128
+#@ minimize_time_to_solution = yes
+#@ job_type = parallel
+#@ network.MPI = sn_all,not_shared,us
+#@ notification = never
+#@ node = 147
+#@ island_count = 1,1
+#@ total_tasks = 4096
+#@ queue
+##################################################################
+#@ step_name = source_12_15
+#@ wall_clock_limit = 06:40:00
+#@ network.MPI = sn_all,not_shared,us
+#@ energy_policy_tag = MG_64c128
+#@ minimize_time_to_solution = yes
+#@ job_type = parallel
+#@ notification = never
+#@ node = 147
+#@ island_count = 1,1
+#@ total_tasks = 4096
 #@ queue
         
 . /etc/profile
@@ -26,10 +64,32 @@ ENSEMBLE=cA2.XX.64/mu0p0009
 CORR_DIR=$WORK/$ENSEMBLE/Corr        
 cd $LOADL_STEP_INITDIR
 
-module unload mpi.ibm
-module load mpi.intel
+# module unload mpi.ibm
+# module load mpi.intel
 module load hdf5/mpi
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$HOME/loc-install/lib
 export OMP_NUM_THREADS=1
 
 mkdir -p $CORR_DIR/${r}-${n}
-mpiexec -n 2048 ../../src/main ./ini/${r}-${n}.ini.xml > ${r}-${n}.log
+
+function run {
+    s=$1
+    poe ../../src/main ./ini/${r}-${n}-${s}.ini.xml > ${r}-${n}-${s}.log
+    retval=$?
+    return $retval
+}
+
+case $LOADL_STEP_NAME in
+    source_0_3 )
+	run 0
+	;;
+    source_4_7 )
+	run 1
+	;;
+    source_8_11 )
+	run 2
+	;;
+    source_12_15 )
+	run 3
+	;;
+esac

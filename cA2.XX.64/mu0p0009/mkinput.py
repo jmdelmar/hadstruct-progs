@@ -5,7 +5,7 @@ import re
 
 L = 64
 T = 128
-procs = 4,8,8,8
+procs = 8,8,8,8
 
 mu = 0.0009
 csw = 1.57551
@@ -17,7 +17,7 @@ n_gauss = 90
 alpha_gauss = 0.2
 
 multigrid = dict(verbosity = 2,
-                 block = (8,4,4,4),
+                 block = (4,4,4,4),
                  level_1 = dict(n_basis = 36,
                                 mu = mu,
                                 setup_iters = 5),
@@ -28,11 +28,12 @@ multigrid = dict(verbosity = 2,
                                 mu = 5.1*mu,
                                 setup_iters = 5))
 
-def get_spos(repl, traj):
+def get_spos(repl, traj, spos_idx):
     spos = []
     for line in open("sources-%s.list" % repl).readlines():
         if line.split(":")[0].strip() == traj:
-            ss = line.split(":")[1].split()[:16]
+            ss = line.split(":")[1].split()
+            ss = [ss[i] for i in spos_idx]
             for s in ss:
                 m = re.search("sx([0-9]{2})sy([0-9]{2})sz([0-9]{2})st([0-9]{2})", s)
                 sx,sy,sz,st = tuple(map(int, m.groups()))
@@ -48,12 +49,15 @@ def get_sinks():
 
 repl = sys.argv[1]
 traj = sys.argv[2]
+spos = sys.argv[3]
+
+spos_idx = tuple(list(map(int, spos.split(","))))
 
 conf_dir = "/gpfs/work/pr74yo/di56sof3/cA2.XX.64/mu0p0009/Confs/"
 corr_dir = "/gpfs/work/pr74yo/di56sof3/cA2.XX.64/mu0p0009/Corr/%s-%s" % (repl, traj)
 prop_dir = "/gpfs/work/pr74yo/di56sof3/cA2.XX.64/mu0p0009/Props/%s-%s" % (repl, traj)
 
-spos = get_spos(repl, traj)
+spos = get_spos(repl, traj, spos_idx)
 sources = [dict(coords = sp) for sp in spos]
 
 for i,s in enumerate(sources):
