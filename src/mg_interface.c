@@ -133,6 +133,25 @@ mg_invert(qhg_spinor_field x, qhg_spinor_field b, double eps, enum mu_sign s, mg
   }
 
   DDalphaAMG_solve((double *)x.field, (double *)b.field, eps, &state->status);  
+  int n_coarse = state->status.coarse_iter_count;
+  double t_coarse = state->status.coarse_time / n_coarse;
+  int n_lev = state->init.number_of_levels;
+  int coarse_dims[ND];
+  for(int d=0; d<ND; d++)
+    coarse_dims[d] = state->init.global_lattice[d];
+
+  for(int i=0; i<n_lev; i++)
+    for(int d=0; d<ND; d++)
+      coarse_dims[d] /= state->params.block_lattice[i][d];
+
+  int coarse_vol = 1;
+  for(int d=0; d<ND; d++)
+    coarse_vol *= coarse_dims[d];
+
+  int nv = state->params.mg_basis_vectors[n_lev-2];
+  double perf = (double)(coarse_vol*(4.0*nv-1.0)*nv*108.0)/t_coarse;
+  if(x.lat->comms->proc_id == 0)
+    printf(" Coarse grid peformance: %12.2f Gflop/s\n\n\n", perf/1e9);
   return;
 }
 
