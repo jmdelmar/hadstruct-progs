@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<hadstruct-input>
+  <dims> 8 12 16 20 </dims>
+  <procs> 1 3 1 1 </procs>
+  <config> ./conf.0000 </config>
+  <props-dir> ./ </props-dir>
+  <corrs-dir> ./ </corrs-dir>
+  <smearing>
+    <n_ape> 50 </n_ape>
+    <alpha_ape> 0.5 </alpha_ape>
+    <n_gauss> 50 </n_gauss>
+    <alpha_gauss> 4.0 </alpha_gauss>
+  </smearing>
+  <action>
+    <mu> 0.0009 </mu>
+    <kappa> 0.137290 </kappa>
+    <csw> 1.57551 </csw>
+  </action>
+  <multi-grid>
+    <verbosity> 2 </verbosity>    
+    <block> 2 2 2 2 </block> <!-- 1st level block -->
+    <n_levels> 2 </n_levels>
+    <level_1>
+      <setup_iters> 3 </setup_iters>
+      <n_basis_vectors> 8 </n_basis_vectors>
+      <mu> 0.0009 </mu>
+    </level_1>
+    <level_2>
+      <setup_iters> 3 </setup_iters>
+      <n_basis_vectors> 24 </n_basis_vectors>
+      <mu> 0.0072 </mu>
+    </level_2>
+  </multi-grid>
+
+  <!-- source-position 0, 2 sink-source separations -->
+  <sp>
+    <coords> 3 0 1 2 </coords>
+    <sink>
+      <proj>P0</proj>
+      <dt>3</dt>
+    </sink>
+    <sink>
+      <proj>P0</proj>
+      <dt>5</dt>
+    </sink>
+    <sink>
+      <proj>P3</proj>
+      <dt>3</dt>
+    </sink>
+    <sink>
+      <proj>P3</proj>
+      <dt>5</dt>
+    </sink>
+  </sp>
+
+  <!-- source-position 1, 1 sink-source separation -->
+  <sp>
+    <coords> 7 2 1 5 </coords>
+    <sink>
+      <proj>P0</proj>
+      <dt>5</dt>
+    </sink>
+    <sink>
+      <proj>P4</proj>
+      <dt>5</dt>
+    </sink>
+  </sp>
+
+  <!-- source-position 2, 0 sink-source separation -->
+  <sp>
+    <coords> 4 0 2 1 </coords>
+  </sp>
+
+</hadstruct-input>
