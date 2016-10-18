@@ -5,27 +5,32 @@ import re
 
 L = 24
 T = 48 
-procs = 12,2,4,4
+procs = 6,6,6,6
 
 mu = 0.0030
 csw = 1.57551
 kappa = 0.1373
 
+n_ape = 50
+alpha_ape = 0.5
+n_gauss = 90
+alpha_gauss = 0.2
+
 multigrid = dict(verbosity = 2,
-                 block = (2,3,2,2),
-                 level_1 = dict(n_basis = 40,
+                 block = (2,2,2,2),
+                 level_1 = dict(n_basis = 24,
                                 mu = mu,
                                 setup_iters = 5),
                  level_2 = dict(n_basis = 24,
-                                mu = mu,
+                                mu = mu*2.3,
                                 setup_iters = 5),)
 
-
-def get_spos(traj):
+def get_spos(traj, spos_idx):
     spos = []
     for line in open("sources.list").readlines():
         if line.split(":")[0].strip() == traj:
-            ss = line.split(":")[1].split()[:16]
+            ss = line.split(":")[1].split()
+            ss = [ss[i] for i in spos_idx]
             for s in ss:
                 m = re.search("sx([0-9]{2})sy([0-9]{2})sz([0-9]{2})st([0-9]{2})", s)
                 sx,sy,sz,st = tuple(map(int, m.groups()))
@@ -40,11 +45,15 @@ def get_sinks(traj, coords):
     return sinks
 
 traj = sys.argv[1]
+spos = sys.argv[2]
+
+spos_idx = tuple(list(map(int, spos.split(","))))
+
 conf_dir = "/gpfs/work/pr74yo/di56sof3/cA2.30.24/Confs/"
 corr_dir = "/gpfs/work/pr74yo/di56sof3/cA2.30.24/Corr/%s" % traj
 prop_dir = "/gpfs/work/pr74yo/di56sof3/cA2.30.24/Props/%s" % traj
 
-spos = get_spos(traj)
+spos = get_spos(traj, spos_idx)
 sources = [dict(coords = sp) for sp in spos]
 
 for i,s in enumerate(sources):
@@ -57,6 +66,11 @@ ET.SubElement(tree, "procs").text = "%d %d %d %d" % tuple(procs)
 ET.SubElement(tree, "config").text = conf_dir + ("conf.%04d" % int(traj))
 ET.SubElement(tree, "corrs-dir").text = corr_dir
 ET.SubElement(tree, "props-dir").text = prop_dir
+s = ET.SubElement(tree, "smearing")
+ET.SubElement(s, "n_ape").text = str(n_ape)
+ET.SubElement(s, "alpha_ape").text = str(alpha_ape)
+ET.SubElement(s, "n_gauss").text = str(n_gauss)
+ET.SubElement(s, "alpha_gauss").text = str(alpha_gauss)
 a = ET.SubElement(tree, "action")
 ET.SubElement(a, "mu").text = str(mu)
 ET.SubElement(a, "kappa").text = str(kappa)
