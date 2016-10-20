@@ -134,7 +134,13 @@ main(int argc, char *argv[])
       Source position string to be used in filenames
     */
     char *srcstr;
-    asprintf(&srcstr, "sx%02dsy%02dsz%02dst%02d", sco[1], sco[2], sco[3], sco[0]);
+    char *fmt;
+    asprintf(&fmt, "sx%%0%ddsy%%0%ddsz%%0%ddst%%0%dd",
+	     (int)log10(rp.dims[1])+1,
+	     (int)log10(rp.dims[2])+1,
+	     (int)log10(rp.dims[3])+1,
+	     (int)log10(rp.dims[0])+1);
+    asprintf(&srcstr, fmt, sco[1], sco[2], sco[3], sco[0]);
     
     /*
       Smear the source for this source position

@@ -24,9 +24,9 @@ multigrid = dict(verbosity = 2,
                  level_2 = dict(n_basis = 36,
                                 mu = mu,
                                 setup_iters = 5),
-                 level_3 = dict(n_basis = 36,
+                 level_3 = dict(n_basis = 0,
                                 mu = 5.1*mu,
-                                setup_iters = 5))
+                                setup_iters = 0))
 
 def get_spos(repl, traj, spos_idx):
     spos = []
@@ -35,7 +35,7 @@ def get_spos(repl, traj, spos_idx):
             ss = line.split(":")[1].split()
             ss = [ss[i] for i in spos_idx]
             for s in ss:
-                m = re.search("sx([0-9]{2})sy([0-9]{2})sz([0-9]{2})st([0-9]{2})", s)
+                m = re.search("sx([0-9]*)sy([0-9]*)sz([0-9]*)st([0-9]*)", s)
                 sx,sy,sz,st = tuple(map(int, m.groups()))
                 spos.append(tuple([st, sx, sy, sz]))
             return spos

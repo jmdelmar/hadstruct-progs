@@ -3,7 +3,7 @@ RANLIB=ranlib
 CC=mpicc
 
 #... Adjust according to compiler
-CFLAGS=-O3 -D_GNU_SOURCE -I./ -std=gnu99 -qopenmp
+CFLAGS=-O3 -D_GNU_SOURCE -I./ -std=gnu99 -fopenmp
 
 #... Path to qhg.h
 QHG_INC=-I$(HOME)/QuaHoG/lib
@@ -49,7 +49,7 @@ HDF5_LIB=-L$(HDF5_BASE)/lib
 LDFLAGS+=$(HDF5_LIB)
 
 #... Order may matter depending on compiler
-LIBS=-qopenmp -lqhg -lDDalphaAMG -llime -lmxml -lhdf5
+LIBS=-fopenmp -lqhg -lDDalphaAMG -llime -lmxml -lhdf5
 
 main: main.o mg_interface.o parser.o 
 	$(CC) $(CFLAGS) -o $@ $< mg_interface.o parser.o $(LDFLAGS) $(LIBS)

@@ -18,12 +18,12 @@ alpha_gauss = 0.2
 
 multigrid = dict(verbosity = 2,
                  block = (2,2,2,2),
-                 level_1 = dict(n_basis = 24,
+                 level_1 = dict(n_basis = 10,
                                 mu = mu,
                                 setup_iters = 5),
-                 level_2 = dict(n_basis = 24,
-                                mu = mu*2.3,
-                                setup_iters = 5),)
+                 level_2 = dict(n_basis = 0,
+                                mu = mu*1.8,
+                                setup_iters = 0),)
 
 def get_spos(traj, spos_idx):
     spos = []
