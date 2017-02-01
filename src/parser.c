@@ -122,7 +122,7 @@ parse_input(char fname[])
   }
  
   struct multigrid_params mg;
-  {
+  if(0){ /* NOT IMPLEMENTED YET */
     /* 
        Get the multigrid parameters
     */

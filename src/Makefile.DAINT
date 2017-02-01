@@ -1,0 +1,61 @@
+AR=ar
+RANLIB=ranlib
+CC=cc
+
+#... Adjust according to compiler
+CFLAGS=-O3 -D_GNU_SOURCE -I./ -std=gnu99 -fopenmp
+
+#... Path to qhg.h
+QHG_INC=-I$(HOME)/local/QuaHoG/lib
+CFLAGS+=$(QHG_INC)
+
+#... Path to lime.h
+LIME_INC=-I$(HOME)/local/include
+CFLAGS+=$(LIME_INC)
+
+#... Path to mxml.h
+MXML_INC=-I$(HOME)/local/include
+CFLAGS+=$(MXML_INC)
+
+#... Path to quda.h
+QUDA_INC=-I$(HOME)/local/quda-build/include
+CFLAGS+=$(QUDA_INC)
+
+#... Path to hdf5.h
+HDF5_INC=-I$(HDF5_DIR)/include
+CFLAGS+=$(HDF5_INC)
+
+#... Paths to libraries
+LDFLAGS=
+
+#... Path to libqhg.a
+QHG_LIB=-L$(HOME)/local/QuaHoG/lib
+LDFLAGS+=$(QHG_LIB)
+
+#... Path to liblime.a
+LIME_LIB=-L$(HOME)/local/lib
+LDFLAGS+=$(LIME_LIB)
+
+#... Path to libmxml.a
+MXML_LIB=-L$(HOME)/local/lib
+LDFLAGS+=$(MXML_LIB)
+
+#... Path to libquda.a
+QUDA_LIB=-L$(HOME)/local/quda-build/lib
+LDFLAGS+=$(QUDA_LIB)
+
+#... Path to libhdf5.a
+HDF5_LIB=-L$(HDF5_DIR)/lib
+LDFLAGS+=$(HDF5_LIB)
+
+#... Order may matter depending on compiler
+LIBS=-fopenmp -lqhg -lquda -lmagma -lmagma_sparse -lcublas -latlas -llapack -lf77blas -latlas -lstdc++ -llime -lmxml -lhdf5
+
+main: main.o qq_interface.o parser.o 
+	$(CC) $(CFLAGS) -o $@ $< qq_interface.o parser.o $(LDFLAGS) $(LIBS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $<
+
+clean:
+	$(RM) *.o

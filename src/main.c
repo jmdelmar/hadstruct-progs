@@ -7,7 +7,7 @@
 #include <math.h>
 #include <qhg.h>
 #include <parser.h>
-#include <mg_interface.h>
+#include <qq_interface.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846264338327950288
@@ -55,7 +55,7 @@ main(int argc, char *argv[])
   int n_gauss = rp.smearing.n_gauss;
   double alpha_gauss = rp.smearing.alpha_gauss;
   
-  enum qhg_fermion_bc_time bc = ANTIPERIODIC; // Also set this in tmLQCD's input
+  enum qhg_fermion_bc_time bc = ANTIPERIODIC; 
   qhg_comms *comms = qhg_comms_init(rp.procs);  
   qhg_lattice *lat = qhg_lattice_init(rp.dims, comms);
   int am_io_proc = lat->comms->proc_id == 0 ? 1 : 0;
@@ -73,7 +73,7 @@ main(int argc, char *argv[])
   if(am_io_proc)
     printf("Plaquette = %12.10f\n", p);
 
-  mg_state mg_state = mg_init(rp, gf);
+  qq_state qq_state = qq_init(rp, gf, bc);
   
   /*
     APE smear in 3-dimensions
@@ -168,7 +168,7 @@ main(int argc, char *argv[])
     qhg_spinor_field *sol_f[] = {sol_u, sol_d};
     for(int flav=0; flav<NF; flav++) {
       for(int i=0; i<NS*NC; i++) {
-	mg_invert(sol_f[flav][i], src[i], 1e-9, flav == 0 ? plus : minus, &mg_state);
+	qq_invert(sol_f[flav][i], src[i], 5e-11, flav == 0 ? plus : minus, &qq_state);
       }
     }
     if(am_io_proc)
@@ -288,7 +288,7 @@ main(int argc, char *argv[])
 	
     	t0 = qhg_stop_watch(0);
 	for(int i=0; i<NS*NC; i++) {
-	  mg_invert(seq_sol[i], seq_src[i], 1e-9, flav == 0 ? minus : plus, &mg_state);
+	  qq_invert(seq_sol[i], seq_src[i], 5e-11, flav == 0 ? minus : plus, &qq_state);
 	}
 	
     	if(am_io_proc)
@@ -358,7 +358,7 @@ main(int argc, char *argv[])
   }
   free(smrstr);
 
-  mg_finalize();
+  qq_finalize(qq_state);
   
   /* 
      Destroy spinor- and gauge-fields
