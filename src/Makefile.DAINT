@@ -18,7 +18,8 @@ MXML_INC=-I$(HOME)/local/include
 CFLAGS+=$(MXML_INC)
 
 #... Path to quda.h
-QUDA_INC=-I$(HOME)/local/quda-build/include
+QUDA_INC=-I$(HOME)/local/quda-tmmg-build/include
+# QUDA_INC=-I/users/kallidoc/build/PrgEnv_Intel/quda-mg_18012017_build/include
 CFLAGS+=$(QUDA_INC)
 
 #... Path to hdf5.h
@@ -41,7 +42,8 @@ MXML_LIB=-L$(HOME)/local/lib
 LDFLAGS+=$(MXML_LIB)
 
 #... Path to libquda.a
-QUDA_LIB=-L$(HOME)/local/quda-build/lib
+QUDA_LIB=-L$(HOME)/local/quda-tmmg-build/lib
+# QUDA_LIB=-L/users/kallidoc/build/PrgEnv_Intel/quda-mg_18012017_build/lib
 LDFLAGS+=$(QUDA_LIB)
 
 #... Path to libhdf5.a

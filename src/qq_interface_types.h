@@ -10,6 +10,7 @@ enum mu_sign {
 typedef struct {
   QudaGaugeParam gauge_param;
   QudaInvertParam invert_param;
+  QudaMultigridParam mg_param;
 } qq_state;
 
 #endif /* _QQ_INTERFACE_TYPES_H */

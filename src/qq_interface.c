@@ -228,10 +228,14 @@ qq_init(struct run_params rp, qhg_gauge_field gf, enum qhg_fermion_bc_time bc)
   
   state.gauge_param.reconstruct = QUDA_RECONSTRUCT_NO;
   state.gauge_param.reconstruct_sloppy = QUDA_RECONSTRUCT_12;
+
+  state.gauge_param.cuda_prec_precondition = 4;
+  state.gauge_param.reconstruct_precondition = QUDA_RECONSTRUCT_12;
+  
   state.gauge_param.ga_pad = (MAX(q_ldims[3]*q_ldims[2]*q_ldims[1],
 				  MAX(q_ldims[3]*q_ldims[2]*q_ldims[0],
 				      MAX(q_ldims[3]*q_ldims[0]*q_ldims[1],
-					  q_ldims[0]*q_ldims[2]*q_ldims[1]))));
+					  q_ldims[0]*q_ldims[2]*q_ldims[1]))))/2;
   state.gauge_param.gauge_fix = QUDA_GAUGE_FIXED_NO;
   
   size_t bytes = lvol*NC*NC*sizeof(double)*2;
@@ -245,31 +249,35 @@ qq_init(struct run_params rp, qhg_gauge_field gf, enum qhg_fermion_bc_time bc)
   plaqQuda(plaq);
   if(am_io_proc)
     printf("Plaquette according to QUDA = %12.10f\n", plaq[0]);
-
+  
   state.invert_param = newQudaInvertParam();
+  state.invert_param.tune = QUDA_TUNE_YES;
   state.invert_param.Ls = 1;
   state.invert_param.dslash_type = QUDA_TWISTED_CLOVER_DSLASH;
   state.invert_param.mu = rp.act.mu;
   state.invert_param.kappa = rp.act.kappa;
   state.invert_param.mass = 1./(2.*state.invert_param.kappa) - 4.0;
-  state.invert_param.inv_type = QUDA_CG_INVERTER;
+  state.invert_param.inv_type = QUDA_GCR_INVERTER;
+  state.invert_param.inv_type_precondition = QUDA_MG_INVERTER;
   state.invert_param.solution_type = QUDA_MAT_SOLUTION;
   state.invert_param.matpc_type = QUDA_MATPC_EVEN_EVEN;
   state.invert_param.dagger = QUDA_DAG_NO;
   state.invert_param.mass_normalization = QUDA_MASS_NORMALIZATION;
   state.invert_param.solver_normalization = QUDA_DEFAULT_NORMALIZATION;
-  state.invert_param.solve_type = QUDA_NORMOP_PC_SOLVE;
+  state.invert_param.solve_type = QUDA_DIRECT_PC_SOLVE;
   state.invert_param.pipeline = 0;
-  state.invert_param.tol_restart = 5e-2;
+  state.invert_param.tol_restart = 1e-2;
+  state.invert_param.tol = 1e-7;
   state.invert_param.residual_type = QUDA_L2_RELATIVE_RESIDUAL;
   state.invert_param.maxiter = 100000;
-  state.invert_param.reliable_delta = 1e-2;
+  state.invert_param.reliable_delta = 5e-1;
   state.invert_param.use_sloppy_partial_accumulator = 0;
   state.invert_param.max_res_increase = 1;
 
   state.invert_param.cpu_prec = 8;
   state.invert_param.cuda_prec = 8;
   state.invert_param.cuda_prec_sloppy = 4;
+  state.invert_param.cuda_prec_precondition = 4;
   state.invert_param.preserve_source = QUDA_PRESERVE_SOURCE_YES;
   state.invert_param.gamma_basis = QUDA_DEGRAND_ROSSI_GAMMA_BASIS;
   state.invert_param.dirac_order = QUDA_DIRAC_ORDER;
@@ -279,10 +287,11 @@ qq_init(struct run_params rp, qhg_gauge_field gf, enum qhg_fermion_bc_time bc)
   state.invert_param.clover_cpu_prec = 8;
   state.invert_param.clover_cuda_prec = 8;
   state.invert_param.clover_cuda_prec_sloppy = 4;
-  state.invert_param.clover_cuda_prec_precondition = 8;
+  state.invert_param.clover_cuda_prec_precondition = 4;
   state.invert_param.clover_order = QUDA_PACKED_CLOVER_ORDER;
   state.invert_param.clover_coeff = rp.act.csw*state.invert_param.kappa;
-  state.invert_param.verbosity = QUDA_SUMMARIZE;
+  state.invert_param.verbosity = QUDA_SUMMARIZE; //QUDA_DEBUG_VERBOSE;
+  state.invert_param.verbosity_precondition = QUDA_SUMMARIZE; //QUDA_DEBUG_VERBOSE;
   state.invert_param.compute_clover = 1;
   state.invert_param.return_clover = 0;
   state.invert_param.compute_clover_inverse = 1;
@@ -290,8 +299,80 @@ qq_init(struct run_params rp, qhg_gauge_field gf, enum qhg_fermion_bc_time bc)
   state.invert_param.cl_pad = 0;
   state.invert_param.sp_pad = 0;
 
-  loadCloverQuda(NULL, NULL, &state.invert_param);
+  state.invert_param.Nsteps = 20;
+  state.invert_param.gcrNkrylov = 10;
+  
+  state.mg_param = newQudaMultigridParam();
+  QudaInvertParam mg_invert_param = newQudaInvertParam();
+  mg_invert_param = state.invert_param;
+  state.mg_param.invert_param = &mg_invert_param;
+  state.mg_param.invert_param->solve_type = QUDA_DIRECT_SOLVE;
+  state.mg_param.invert_param->inv_type_precondition = QUDA_INVALID_INVERTER;
 
+  
+  double delta_muPR = 6.0;
+  double delta_muCG = 1.0;
+  double delta_kappaPR = 1.0;
+  double delta_kappaCG = 1.0;
+
+  state.mg_param.delta_muPR = delta_muPR;
+  state.mg_param.delta_muCG = delta_muCG;
+  state.mg_param.delta_kappaPR = delta_kappaPR;
+  state.mg_param.delta_kappaCG = delta_kappaCG;
+  state.mg_param.n_level = 2;
+
+  int geo_block_size[2][ND] = {{4, 4, 4, 4},
+			       {1, 1, 1, 1}};
+  
+  for (int i=0; i<state.mg_param.n_level; i++) {
+    for (int j=0; j<ND; j++) {
+      state.mg_param.geo_block_size[i][j] = geo_block_size[i][j];
+    }
+    state.mg_param.spin_block_size[i] = 1;
+    
+    state.mg_param.n_vec[i] = 24;
+    state.mg_param.nu_pre[i] = 0;
+    state.mg_param.nu_post[i] = 3;
+    
+    state.mg_param.cycle_type[i] = QUDA_MG_CYCLE_RECURSIVE;
+    
+    state.mg_param.smoother[i] = QUDA_MR_INVERTER;
+
+    state.mg_param.setup_maxiter = 3;
+    state.mg_param.setup_tol = 1e-1;
+
+    state.mg_param.smoother_tol[i] = 1e-3;
+    state.mg_param.global_reduction[i] = QUDA_BOOLEAN_YES;
+
+    state.mg_param.smoother_solve_type[i] = QUDA_DIRECT_PC_SOLVE; // EVEN-ODD
+
+    // if we are using an outer even-odd preconditioned solve, then we
+    // use single parity injection into the coarse grid
+    state.mg_param.coarse_grid_solution_type[i] = QUDA_MATPC_SOLUTION;
+
+    state.mg_param.omega[i] = 0.85; // over/under relaxation factor
+
+    state.mg_param.location[i] = QUDA_CUDA_FIELD_LOCATION;
+  }
+
+  // only coarsen the spin on the first restriction
+  state.mg_param.spin_block_size[0] = 2;
+
+  // coarse grid solver is GCR
+  state.mg_param.smoother[state.mg_param.n_level-1] = QUDA_GCR_INVERTER;
+  state.mg_param.compute_null_vector = QUDA_COMPUTE_NULL_VECTOR_YES;
+  state.mg_param.generate_all_levels = QUDA_BOOLEAN_YES;  
+  state.mg_param.run_verify = QUDA_BOOLEAN_NO;
+
+  strcpy(state.mg_param.vec_outfile, "");
+  strcpy(state.mg_param.vec_infile, "");
+
+  loadCloverQuda(NULL, NULL, &state.invert_param);
+  state.mg_param.invert_param->twist_flavor = QUDA_TWIST_PLUS;
+  state.invert_param.preconditionerUP = newMultigridQuda(&state.mg_param);
+  state.mg_param.invert_param->twist_flavor = QUDA_TWIST_MINUS;
+  state.invert_param.preconditionerDN = newMultigridQuda(&state.mg_param);
+  
   bytes = sizeof(double)*NS*NC*lvol*2;
   aux_spinor[0] = qhg_alloc(bytes);
   aux_spinor[1] = qhg_alloc(bytes);
@@ -304,7 +385,7 @@ qq_invert(qhg_spinor_field out, qhg_spinor_field in, double eps, enum mu_sign s,
 {
   state->invert_param.tol = eps;
   state->invert_param.twist_flavor = s == up ? QUDA_TWIST_MINUS : QUDA_TWIST_PLUS;
-
+  state->invert_param.preconditioner = s == up ? state->invert_param.preconditionerDN : state->invert_param.preconditionerUP;
   cnvrt_spinor_field_to_quda(aux_spinor[0], in);
   invertQuda(aux_spinor[1], aux_spinor[0], &state->invert_param);
   cnvrt_spinor_field_from_quda(out, aux_spinor[1]);
@@ -315,6 +396,8 @@ qq_invert(qhg_spinor_field out, qhg_spinor_field in, double eps, enum mu_sign s,
 void
 qq_finalize(qq_state state)
 {
+  destroyMultigridQuda(state.invert_param.preconditionerUP);
+  destroyMultigridQuda(state.invert_param.preconditionerDN);
   freeCloverQuda();
   freeGaugeQuda();  
   endQuda();
