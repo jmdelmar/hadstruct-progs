@@ -1,4 +1,5 @@
 #include <qhg.h>
+#include <parser_types.h>
 #include <DDalphaAMG.h>
 #include <mg_interface_types.h>
 
@@ -54,7 +55,7 @@ cart_coords(MPI_Comm comm, int rank, int maxrank, int coords[ND]) {
 }
 
 mg_state
-mg_init(struct multigrid_params mg, struct action_params act, qhg_gauge_field gf)
+mg_init(struct run_params rp, qhg_gauge_field gf)
 {
   for(int i=0; i<ND; i++)
     dims[i] = gf.lat->dims[i];
@@ -78,30 +79,30 @@ mg_init(struct multigrid_params mg, struct action_params act, qhg_gauge_field gf
   init.procs[2] = gf.lat->comms->proc_dims[2];
   init.procs[3] = gf.lat->comms->proc_dims[1];
   init.bc = 1;
-  init.block_lattice[0] = mg.block[0];
-  init.block_lattice[3] = mg.block[1];
-  init.block_lattice[2] = mg.block[2];
-  init.block_lattice[1] = mg.block[3];
+  init.block_lattice[0] = rp.mg.block[0];
+  init.block_lattice[3] = rp.mg.block[1];
+  init.block_lattice[2] = rp.mg.block[2];
+  init.block_lattice[1] = rp.mg.block[3];
   init.number_openmp_threads = gf.lat->comms->nthreads;
-  init.number_of_levels = mg.n_levels;
-  init.kappa = act.kappa;
-  init.mu = act.mu;
-  init.csw = act.csw;
+  init.number_of_levels = rp.mg.n_levels;
+  init.kappa = rp.act.kappa;
+  init.mu = rp.act.mu;
+  init.csw = rp.act.csw;
   init.init_file = NULL;
   init.rnd_seeds = NULL;
   DDalphaAMG_initialize(&init, &params, &status);  
 
 
-  for(int i=0; i<mg.n_levels; i++) {
-    params.setup_iterations[i] = mg.setup_iterations[i];
-    params.mg_basis_vectors[i] = mg.n_basis_vectors[i];
-    params.mu_factor[i] = mg.coarse_mu[i]/act.mu;
+  for(int i=0; i<rp.mg.n_levels; i++) {
+    params.setup_iterations[i] = rp.mg.setup_iterations[i];
+    params.mg_basis_vectors[i] = rp.mg.n_basis_vectors[i];
+    params.mu_factor[i] = rp.mg.coarse_mu[i]/rp.act.mu;
   }
 
   params.mu_odd_shift = 0;
   params.mu_even_shift = 0;
   params.mixed_precision = 1;
-  params.print = mg.verbosity;
+  params.print = rp.mg.verbosity;
   params.conf_index_fct = conf_index_fct;  
   params.vector_index_fct = vector_index_fct;  
   DDalphaAMG_update_parameters(&params, &status);
@@ -115,7 +116,7 @@ mg_init(struct multigrid_params mg, struct action_params act, qhg_gauge_field gf
   state.init = init;
   state.params = params;
   state.status = status;
-  state.current_mu_sign = (act.mu >= 0) - (act.mu < 0) == 1 ? plus : minus;
+  state.current_mu_sign = (rp.act.mu >= 0) - (rp.act.mu < 0) == 1 ? plus : minus;
   return state;
 }
 
@@ -131,7 +132,7 @@ mg_invert(qhg_spinor_field x, qhg_spinor_field b, double eps, enum mu_sign s, mg
     state->current_mu_sign = s;
   }
 
-  DDalphaAMG_solve((double *)x.field, (double *)b.field, eps, &state->status);
+  DDalphaAMG_solve((double *)x.field, (double *)b.field, eps, &state->status);  
   int n_coarse = state->status.coarse_iter_count;
   double t_coarse = state->status.coarse_time / n_coarse;
   int n_lev = state->init.number_of_levels;

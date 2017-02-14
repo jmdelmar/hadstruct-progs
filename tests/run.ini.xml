@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<hadstruct-input>
+   <dims>128 64 64 64</dims>
+   <procs>8 8 8 8</procs>
+   <config> /gpfs/work/pr74yo/di56sof3/cA2.XX.64/mu0p0009/Confs/conf.0-0350 </config>
+   <props-dir> /gpfs/work/pr74yo/di56sof3/cA2.XX.64/mu0p0009/Corr/0-0350/ </props-dir>
+   <corrs-dir> /gpfs/work/pr74yo/di56sof3/cA2.XX.64/mu0p0009/Corr/0-0350/ </corrs-dir>
+   <smearing>
+      <n_ape>50</n_ape>
+      <alpha_ape>0.5</alpha_ape>
+      <n_gauss>90</n_gauss>
+      <alpha_gauss>0.2</alpha_gauss>
+   </smearing>
+   <action>
+      <mu>0.0009</mu>
+      <kappa>0.1372938</kappa>
+      <csw>1.57551</csw>
+   </action>
+   <multi-grid>
+      <verbosity>2</verbosity>
+      <block>4 4 4 4</block>
+      <n_levels>3</n_levels>
+      <level_1>
+         <setup_iters>5</setup_iters>
+         <n_basis_vectors>36</n_basis_vectors>
+         <mu>0.0009</mu>
+      </level_1>
+      <level_2>
+         <setup_iters>5</setup_iters>
+         <n_basis_vectors>36</n_basis_vectors>
+         <mu>0.0009</mu>
+      </level_2>
+      <level_3>
+         <setup_iters>0</setup_iters>
+         <n_basis_vectors>0</n_basis_vectors>
+         <mu>0.00459</mu>
+      </level_3>
+   </multi-grid>
+   <sp>
+      <coords>3 51 63 46</coords>
+   </sp>
+</hadstruct-input>
