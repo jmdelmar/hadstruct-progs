@@ -49,7 +49,7 @@ HDF5_LIB=-L$(HDF5_DIR)/lib
 LDFLAGS+=$(HDF5_LIB)
 
 #... Order may matter depending on compiler
-LIBS=-fopenmp -lqhg -lquda -lmagma -lmagma_sparse -lcublas -latlas -llapack -lf77blas -latlas -lstdc++ -llime -lmxml -lhdf5
+LIBS=-fopenmp -lqhg -lquda -lstdc++ -llime -lmxml -lhdf5
 
 main: main.o qq_interface.o parser.o 
 	$(CC) $(CFLAGS) -o $@ $< qq_interface.o parser.o $(LDFLAGS) $(LIBS)

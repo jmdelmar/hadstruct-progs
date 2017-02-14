@@ -226,12 +226,12 @@ qq_init(struct run_params rp, qhg_gauge_field gf, enum qhg_fermion_bc_time bc)
   state.gauge_param.cuda_prec = 8;
   state.gauge_param.cuda_prec_sloppy = 4;
   
-  state.gauge_param.reconstruct = QUDA_RECONSTRUCT_NO;
-  state.gauge_param.reconstruct_sloppy = QUDA_RECONSTRUCT_12;
+  state.gauge_param.reconstruct = QUDA_RECONSTRUCT_8;
+  state.gauge_param.reconstruct_sloppy = QUDA_RECONSTRUCT_8;
   state.gauge_param.ga_pad = (MAX(q_ldims[3]*q_ldims[2]*q_ldims[1],
 				  MAX(q_ldims[3]*q_ldims[2]*q_ldims[0],
 				      MAX(q_ldims[3]*q_ldims[0]*q_ldims[1],
-					  q_ldims[0]*q_ldims[2]*q_ldims[1]))));
+					  q_ldims[0]*q_ldims[2]*q_ldims[1]))))/2;
   state.gauge_param.gauge_fix = QUDA_GAUGE_FIXED_NO;
   
   size_t bytes = lvol*NC*NC*sizeof(double)*2;
@@ -260,12 +260,12 @@ qq_init(struct run_params rp, qhg_gauge_field gf, enum qhg_fermion_bc_time bc)
   state.invert_param.solver_normalization = QUDA_DEFAULT_NORMALIZATION;
   state.invert_param.solve_type = QUDA_NORMOP_PC_SOLVE;
   state.invert_param.pipeline = 0;
-  state.invert_param.tol_restart = 5e-2;
+  state.invert_param.tol_restart = 5e-3;
   state.invert_param.residual_type = QUDA_L2_RELATIVE_RESIDUAL;
   state.invert_param.maxiter = 100000;
-  state.invert_param.reliable_delta = 1e-2;
+  state.invert_param.reliable_delta = 5e-3;
   state.invert_param.use_sloppy_partial_accumulator = 0;
-  state.invert_param.max_res_increase = 1;
+  state.invert_param.max_res_increase = 6;
 
   state.invert_param.cpu_prec = 8;
   state.invert_param.cuda_prec = 8;
@@ -279,17 +279,18 @@ qq_init(struct run_params rp, qhg_gauge_field gf, enum qhg_fermion_bc_time bc)
   state.invert_param.clover_cpu_prec = 8;
   state.invert_param.clover_cuda_prec = 8;
   state.invert_param.clover_cuda_prec_sloppy = 4;
-  state.invert_param.clover_cuda_prec_precondition = 8;
+  state.invert_param.clover_cuda_prec_precondition = 2;
   state.invert_param.clover_order = QUDA_PACKED_CLOVER_ORDER;
   state.invert_param.clover_coeff = rp.act.csw*state.invert_param.kappa;
+  //  state.invert_param.verbosity = QUDA_VERBOSE;
   state.invert_param.verbosity = QUDA_SUMMARIZE;
-  state.invert_param.compute_clover = 1;
-  state.invert_param.return_clover = 0;
-  state.invert_param.compute_clover_inverse = 1;
-  state.invert_param.return_clover_inverse = 0;
+  //  state.invert_param.compute_clover = 1;
+  //  state.invert_param.return_clover = 0;
+  //  state.invert_param.compute_clover_inverse = 1;
+  //  state.invert_param.return_clover_inverse = 0;
   state.invert_param.cl_pad = 0;
   state.invert_param.sp_pad = 0;
-
+  state.invert_param.tune = 1;
   loadCloverQuda(NULL, NULL, &state.invert_param);
 
   bytes = sizeof(double)*NS*NC*lvol*2;
@@ -302,11 +303,17 @@ qq_init(struct run_params rp, qhg_gauge_field gf, enum qhg_fermion_bc_time bc)
 void
 qq_invert(qhg_spinor_field out, qhg_spinor_field in, double eps, enum mu_sign s, qq_state *state)
 {
+  int am_io_proc = in.lat->comms->proc_id == 0 ? 1 : 0;
   state->invert_param.tol = eps;
   state->invert_param.twist_flavor = s == up ? QUDA_TWIST_MINUS : QUDA_TWIST_PLUS;
 
   cnvrt_spinor_field_to_quda(aux_spinor[0], in);
+  double t0 = qhg_stop_watch(0);
   invertQuda(aux_spinor[1], aux_spinor[0], &state->invert_param);
+  if(am_io_proc)
+    printf("Done: %i iter / %g secs = %g Gflops, total time = %g secs\n",
+	   state->invert_param.iter, state->invert_param.secs,
+	   state->invert_param.gflops/state->invert_param.secs, qhg_stop_watch(t0));
   cnvrt_spinor_field_from_quda(out, aux_spinor[1]);
   
   return;

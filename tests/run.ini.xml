@@ -1,10 +1,10 @@
 <?xml version="1.0" ?>
 <hadstruct-input>
-   <dims>12 8 8 8</dims>
-   <procs>3 2 2 2</procs>
-   <config> ./conf_8c12.0000 </config>
-   <props-dir> ./ </props-dir>
-   <corrs-dir> ./ </corrs-dir>
+   <dims>128 64 64 64</dims>
+   <procs>16 1 1 1</procs>
+   <config> /scratch/snx3000/koutsou/cA2.09.64/Confs/conf_64c128.0350 </config>
+   <props-dir> /scratch/snx3000/koutsou/cA2.09.64/ </props-dir>
+   <corrs-dir> /scratch/snx3000/koutsou/cA2.09.64/Corr/ </corrs-dir>
    <smearing>
       <n_ape>50</n_ape>
       <alpha_ape>0.5</alpha_ape>
@@ -12,110 +12,11 @@
       <alpha_gauss>0.2</alpha_gauss>
    </smearing>
    <action>
-      <mu>0.003</mu>
-      <kappa>0.1373</kappa>
+      <mu>0.0009</mu>
+      <kappa>0.1372938</kappa>
       <csw>1.57551</csw>
    </action>
    <sp>
-      <coords>2 3 7 1</coords>
-      <sink>
-         <proj>P0</proj>
-         <dt>4</dt>
-      </sink>
-      <sink>
-         <proj>P3</proj>
-         <dt>4</dt>
-      </sink>
-      <sink>
-         <proj>P4</proj>
-         <dt>4</dt>
-      </sink>
-      <sink>
-         <proj>P5</proj>
-         <dt>4</dt>
-      </sink>
-      <sink>
-         <proj>P0</proj>
-         <dt>5</dt>
-      </sink>
-      <sink>
-         <proj>P3</proj>
-         <dt>5</dt>
-      </sink>
-      <sink>
-         <proj>P4</proj>
-         <dt>5</dt>
-      </sink>
-      <sink>
-         <proj>P5</proj>
-         <dt>5</dt>
-      </sink>
-      <sink>
-         <proj>P0</proj>
-         <dt>6</dt>
-      </sink>
-      <sink>
-         <proj>P3</proj>
-         <dt>6</dt>
-      </sink>
-      <sink>
-         <proj>P4</proj>
-         <dt>6</dt>
-      </sink>
-      <sink>
-         <proj>P5</proj>
-         <dt>6</dt>
-      </sink>
-   </sp>
-   <sp>
-      <coords>6 7 1 2</coords>
-      <sink>
-         <proj>P0</proj>
-         <dt>4</dt>
-      </sink>
-      <sink>
-         <proj>P3</proj>
-         <dt>4</dt>
-      </sink>
-      <sink>
-         <proj>P4</proj>
-         <dt>4</dt>
-      </sink>
-      <sink>
-         <proj>P5</proj>
-         <dt>4</dt>
-      </sink>
-      <sink>
-         <proj>P0</proj>
-         <dt>5</dt>
-      </sink>
-      <sink>
-         <proj>P3</proj>
-         <dt>5</dt>
-      </sink>
-      <sink>
-         <proj>P4</proj>
-         <dt>5</dt>
-      </sink>
-      <sink>
-         <proj>P5</proj>
-         <dt>5</dt>
-      </sink>
-      <sink>
-         <proj>P0</proj>
-         <dt>6</dt>
-      </sink>
-      <sink>
-         <proj>P3</proj>
-         <dt>6</dt>
-      </sink>
-      <sink>
-         <proj>P4</proj>
-         <dt>6</dt>
-      </sink>
-      <sink>
-         <proj>P5</proj>
-         <dt>6</dt>
-      </sink>
+      <coords>3 51 63 46</coords>
    </sp>
 </hadstruct-input>

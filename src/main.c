@@ -168,7 +168,7 @@ main(int argc, char *argv[])
     qhg_spinor_field *sol_f[] = {sol_u, sol_d};
     for(int flav=0; flav<NF; flav++) {
       for(int i=0; i<NS*NC; i++) {
-	qq_invert(sol_f[flav][i], src[i], 5e-11, flav == 0 ? plus : minus, &qq_state);
+	qq_invert(sol_f[flav][i], src[i], 5e-9, flav == 0 ? plus : minus, &qq_state);
       }
     }
     if(am_io_proc)
@@ -221,8 +221,10 @@ main(int argc, char *argv[])
       char *group;
       asprintf(&group, "mesons/%s/", srcstr);      
       qhg_write_mesons(fname, mesons, group);
+      t0 = qhg_stop_watch(t0);
+      double bytes = (size_t)mesons.site_size*(size_t)lat->vol*sizeof(_Complex double);
       if(am_io_proc)
-	printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0)); 
+	printf("Wrote %s in %g sec, %g GBytes/sec\n", fname, t0, bytes/((double)t0)/1024./1024./1024.); 
       free(fname);
       free(group);
     }
@@ -235,8 +237,10 @@ main(int argc, char *argv[])
       char *group;
       asprintf(&group, "nucleons/%s/", srcstr);      
       qhg_write_nucleons(fname, nucleons, group);
+      t0 = qhg_stop_watch(t0);
+      double bytes = (size_t)nucleons.site_size*(size_t)lat->vol*sizeof(_Complex double);
       if(am_io_proc)
-	printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0)); 
+	printf("Wrote %s in %g sec, %g GBytes/sec\n", fname, t0, bytes/((double)t0)/1024./1024./1024.);
       free(fname);
       free(group);
     }
@@ -288,7 +292,7 @@ main(int argc, char *argv[])
 	
     	t0 = qhg_stop_watch(0);
 	for(int i=0; i<NS*NC; i++) {
-	  qq_invert(seq_sol[i], seq_src[i], 5e-11, flav == 0 ? minus : plus, &qq_state);
+	  qq_invert(seq_sol[i], seq_src[i], 5e-9, flav == 0 ? minus : plus, &qq_state);
 	}
 	
     	if(am_io_proc)
