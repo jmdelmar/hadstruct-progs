@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+<hadstruct-input>
+   <dims>192 64 64 64</dims>
+   <procs>12 1 1 2</procs>
+   <config> /scratch/snx3000/koutsou/cA2.60.64/Confs/conf_64c192.0020 </config>
+   <props-dir> /scratch/snx3000/koutsou/cA2.60.64/ </props-dir>
+   <corrs-dir> /scratch/snx3000/koutsou/cA2.60.64/Corr/ </corrs-dir>
+   <smearing>
+      <n_ape>50</n_ape>
+      <alpha_ape>0.5</alpha_ape>
+      <n_gauss>90</n_gauss>
+      <alpha_gauss>0.2</alpha_gauss>
+   </smearing>
+   <action>
+      <mu>0.006</mu>
+      <kappa>0.1373</kappa>
+      <csw>1.57551</csw>
+   </action>
+   <sp>
+      <coords>189 51 63 46</coords>
+   </sp>
+</hadstruct-input>
