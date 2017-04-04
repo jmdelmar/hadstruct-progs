@@ -11,7 +11,7 @@ static int q_ldims[ND];
 static int proc_dims[ND];
 static int ldims[ND];
 static double *h_gauge[ND];
-static int vol, lvol;
+static unsigned long int vol, lvol;
 static double *aux_spinor[2];
 
 static int
@@ -50,12 +50,12 @@ cnvrt_gauge_field(double *h_g[ND], qhg_gauge_field gauge, enum qhg_fermion_bc_ti
     } else {
       apply_bc = 0;
     }
-    for(int z=0; z<q_ldims[2]; z++)
-      for(int y=0; y<q_ldims[1]; y++)
-	for(int x=0; x<q_ldims[0]; x++) {
-	  int idx0 = z + ldims[3]*(y + ldims[2]*(x + ldims[1]*t));
-	  int idx1 = x + q_ldims[0]*(y + q_ldims[1]*(z + q_ldims[2]*t));
-	  int eo = (x+y+z+t) % 2;
+    for(unsigned long int z=0; z<q_ldims[2]; z++)
+      for(unsigned long int y=0; y<q_ldims[1]; y++)
+	for(unsigned long int x=0; x<q_ldims[0]; x++) {
+	  unsigned long int idx0 = z + ldims[3]*(y + ldims[2]*(x + ldims[1]*t));
+	  unsigned long int idx1 = x + q_ldims[0]*(y + q_ldims[1]*(z + q_ldims[2]*t));
+	  unsigned long int eo = (x+y+z+t) % 2;
 	  for(int mu=0; mu<ND; mu++) {
 	    int nu = (ND+mu-1) % ND;
 	    double *g0 = (double *)&(gauge.field[NC*NC*(mu + ND*idx0)]);
@@ -75,13 +75,13 @@ cnvrt_gauge_field(double *h_g[ND], qhg_gauge_field gauge, enum qhg_fermion_bc_ti
 static void
 cnvrt_spinor_field_to_quda(double *sp1, qhg_spinor_field sp0)
 {
-  for(int t=0; t<q_ldims[3]; t++)
-    for(int z=0; z<q_ldims[2]; z++)
-      for(int y=0; y<q_ldims[1]; y++)
-	for(int x=0; x<q_ldims[0]; x++) {
-	  int idx0 = z + ldims[3]*(y + ldims[2]*(x + ldims[1]*t));
-	  int idx1 = x + q_ldims[0]*(y + q_ldims[1]*(z + q_ldims[2]*t));
-	  int eo = (x+y+z+t) % 2;
+  for(unsigned long int t=0; t<q_ldims[3]; t++)
+    for(unsigned long int z=0; z<q_ldims[2]; z++)
+      for(unsigned long int y=0; y<q_ldims[1]; y++)
+	for(unsigned long int x=0; x<q_ldims[0]; x++) {
+	  unsigned long int idx0 = z + ldims[3]*(y + ldims[2]*(x + ldims[1]*t));
+	  unsigned long int idx1 = x + q_ldims[0]*(y + q_ldims[1]*(z + q_ldims[2]*t));
+	  unsigned long int eo = (x+y+z+t) % 2;
 	  double *s0 = (double *)&(sp0.field[NC*NS*idx0]);
 	  double *s1 = &(sp1[NC*NS*(2*(eo*(lvol/2) + (idx1/2)))]);
 	  // memcpy(s1, s0, sizeof(double)*NS*NC*2);
@@ -122,13 +122,13 @@ cnvrt_spinor_field_to_quda(double *sp1, qhg_spinor_field sp0)
 static void
 cnvrt_spinor_field_from_quda(qhg_spinor_field sp1, double *sp0)
 {
-  for(int t=0; t<q_ldims[3]; t++)
-    for(int z=0; z<q_ldims[2]; z++)
-      for(int y=0; y<q_ldims[1]; y++)
-	for(int x=0; x<q_ldims[0]; x++) {
-	  int idx0 = x + q_ldims[0]*(y + q_ldims[1]*(z + q_ldims[2]*t));
-	  int idx1 = z + ldims[3]*(y + ldims[2]*(x + ldims[1]*t));
-	  int eo = (x+y+z+t) % 2;
+  for(unsigned long int t=0; t<q_ldims[3]; t++)
+    for(unsigned long int z=0; z<q_ldims[2]; z++)
+      for(unsigned long int y=0; y<q_ldims[1]; y++)
+	for(unsigned long int x=0; x<q_ldims[0]; x++) {
+	  unsigned long int idx0 = x + q_ldims[0]*(y + q_ldims[1]*(z + q_ldims[2]*t));
+	  unsigned long int idx1 = z + ldims[3]*(y + ldims[2]*(x + ldims[1]*t));
+	  unsigned long int eo = (x+y+z+t) % 2;
 	  double *s0 = &(sp0[NC*NS*(2*(eo*(lvol/2) + (idx0/2)))]);
 	  double *s1 = (double *)&(sp1.field[NC*NS*idx1]);
 	  //memcpy(s1, s0, sizeof(double)*NS*NC*2);
