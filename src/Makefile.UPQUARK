@@ -3,10 +3,10 @@ RANLIB=ranlib
 CC=mpicc
 
 #... Adjust according to compiler
-CFLAGS=-O2 -I./ -D_GNU_SOURCE -fopenmp
+CFLAGS=-O2 -I./ -D_GNU_SOURCE
 
 #... Path to qhg.h
-QHG_INC=-I$(HOME)/QuaHoG/lib
+QHG_INC=-I$(HOME)/devel/QuaHoG/lib
 CFLAGS+=$(QHG_INC)
 
 #... Path to lime.h
@@ -18,7 +18,7 @@ MXML_INC=-I$(HOME)/loc-install/include
 CFLAGS+=$(MXML_INC)
 
 #... Path to DDalphaAMG.h
-MG_INC=-I$(HOME)/DDalphaAMG/include
+MG_INC=-I$(HOME)/devel/DDalphaAMG/include
 CFLAGS+=$(MG_INC)
 
 #... Path to hdf5.h
@@ -29,7 +29,7 @@ CFLAGS+=$(MG_INC)
 LDFLAGS=
 
 #... Path to libqhg.a
-QHG_LIB=-L$(HOME)/QuaHoG/lib
+QHG_LIB=-L$(HOME)/devel/QuaHoG/lib
 LDFLAGS+=$(QHG_LIB)
 
 #... Path to liblime.a
@@ -41,7 +41,7 @@ MXML_LIB=-L$(HOME)/loc-install/lib
 LDFLAGS+=$(MXML_LIB)
 
 #... Path to libDDalphaAMG.a
-MG_LIB=-L$(HOME)/DDalphaAMG/lib
+MG_LIB=-L$(HOME)/devel/DDalphaAMG/lib
 LDFLAGS+=$(MG_LIB)
 
 #... Path to libhdf5.a
@@ -49,7 +49,7 @@ LDFLAGS+=$(MG_LIB)
 # LDFLAGS+=$(HDF5_LIB)
 
 #... Order may matter depending on compiler
-LIBS=-lqhg -lDDalphaAMG -llime -lmxml -lhdf5 -fopenmp
+LIBS=-lqhg -lDDalphaAMG -llime -lmxml -lhdf5
 
 # Targets
 main: main.o parser.o mg_interface.o
