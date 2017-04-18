@@ -6,7 +6,7 @@
 static int dims[ND];
 static int procs[ND];
 
-static int
+static unsigned long int
 conf_index_fct(int t, int z, int y, int x, int mu) {
   int d[] = {
     dims[0]/procs[0],
@@ -15,14 +15,14 @@ conf_index_fct(int t, int z, int y, int x, int mu) {
     dims[3]/procs[3],
   };
   int co[] = {t,x,y,z};
-  int pos = IDX(co, d);
-  static int size_per_pos = ND*NC*NC*2;
+  unsigned long int pos = IDX(co, d);
+  static size_t size_per_pos = ND*NC*NC*2;
   int dir = (mu==1)?3:((mu==3)?1:mu);
-  int size_per_dir = NC*NC*2;     
+  size_t size_per_dir = NC*NC*2;     
   return pos*size_per_pos + dir*size_per_dir;
 }
 
-static int
+static unsigned long int
 vector_index_fct(int t, int z, int y, int x) {
   int d[] = {
     dims[0]/procs[0],
@@ -31,8 +31,8 @@ vector_index_fct(int t, int z, int y, int x) {
     dims[3]/procs[3],
   };
   int co[] = {t,x,y,z};
-  int pos = IDX(co, d);
-  int size_per_pos = NS*NC*2;
+  unsigned long int pos = IDX(co, d);
+  size_t size_per_pos = NS*NC*2;
   return pos*size_per_pos;
 }
 
