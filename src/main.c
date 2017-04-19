@@ -168,7 +168,7 @@ main(int argc, char *argv[])
     qhg_spinor_field *sol_f[] = {sol_u, sol_d};
     for(int flav=0; flav<NF; flav++) {
       for(int i=0; i<NS*NC; i++) {
-	qq_invert(sol_f[flav][i], src[i], 5e-9, flav == 0 ? plus : minus, &qq_state);
+	qq_invert(sol_f[flav][i], src[i], /* 5e-5 */ 5e-9, flav == 0 ? plus : minus, &qq_state);
       }
     }
     if(am_io_proc)
@@ -292,7 +292,7 @@ main(int argc, char *argv[])
 	
     	t0 = qhg_stop_watch(0);
 	for(int i=0; i<NS*NC; i++) {
-	  qq_invert(seq_sol[i], seq_src[i], 5e-9, flav == 0 ? minus : plus, &qq_state);
+	  qq_invert(seq_sol[i], seq_src[i], /* 5e-5 */ 5e-9, flav == 0 ? minus : plus, &qq_state);
 	}
 	
     	if(am_io_proc)

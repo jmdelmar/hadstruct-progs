@@ -223,7 +223,7 @@ qq_init(struct run_params rp, qhg_gauge_field gf, enum qhg_fermion_bc_time bc)
   }
   
   state.gauge_param.cpu_prec = 8;
-  state.gauge_param.cuda_prec = 8 // 4;
+  state.gauge_param.cuda_prec = 8 /* 4 */;
   state.gauge_param.cuda_prec_sloppy = 4;
   
   state.gauge_param.reconstruct = QUDA_RECONSTRUCT_8;
@@ -268,7 +268,7 @@ qq_init(struct run_params rp, qhg_gauge_field gf, enum qhg_fermion_bc_time bc)
   state.invert_param.max_res_increase = 6;
 
   state.invert_param.cpu_prec = 8;
-  state.invert_param.cuda_prec = 8 // 4;
+  state.invert_param.cuda_prec = 8 /* 4 */;
   state.invert_param.cuda_prec_sloppy = 4;
   state.invert_param.preserve_source = QUDA_PRESERVE_SOURCE_YES;
   state.invert_param.gamma_basis = QUDA_DEGRAND_ROSSI_GAMMA_BASIS;
@@ -277,7 +277,7 @@ qq_init(struct run_params rp, qhg_gauge_field gf, enum qhg_fermion_bc_time bc)
   state.invert_param.output_location = QUDA_CPU_FIELD_LOCATION;
 
   state.invert_param.clover_cpu_prec = 8;
-  state.invert_param.clover_cuda_prec = 8 // 4;
+  state.invert_param.clover_cuda_prec = 8 /* 4 */;
   state.invert_param.clover_cuda_prec_sloppy = 4;
   state.invert_param.clover_cuda_prec_precondition = 2;
   state.invert_param.clover_order = QUDA_PACKED_CLOVER_ORDER;
