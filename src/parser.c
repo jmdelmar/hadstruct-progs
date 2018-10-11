@@ -93,10 +93,15 @@ parse_input(char fname[])
     mxml_node_t *anode = mxmlFindElement(node, node, "action", NULL, NULL, MXML_DESCEND);
     /* First as strings */
     const char *mu = mxmlGetOpaque(mxmlFindPath(anode, "mu"));
+    const char *mu_l = mxmlGetOpaque(mxmlFindPath(anode, "mu_l"));
+    const char *mu_s = mxmlGetOpaque(mxmlFindPath(anode, "mu_s"));
     const char *kappa = mxmlGetOpaque(mxmlFindPath(anode, "kappa"));
     const char *csw = mxmlGetOpaque(mxmlFindPath(anode, "csw"));
     if(mu == NULL) {
-      exit_tag_not_found("action/mu", fname);
+      mu = mu_l;
+      if(mu_l == NULL || mu_s == NULL) {
+	exit_tag_not_found("action/mu", fname);
+      }
     }
     if(kappa == NULL) {
       exit_tag_not_found("action/kappa", fname);
@@ -110,6 +115,14 @@ parse_input(char fname[])
     a.mu = strtod(mu, &e);
     if(e == mu) {
       exit_convertions_error("action/mu", fname, mu);
+    } 
+    a.mu_l = strtod(mu_l, &e);
+    if(e == mu_l) {
+      exit_convertions_error("action/mu_l", fname, mu_l);
+    } 
+    a.mu_s = strtod(mu_s, &e);
+    if(e == mu_s) {
+      exit_convertions_error("action/mu_s", fname, mu_s);
     } 
     a.kappa = strtod(kappa, &e);
     if(e == kappa) {

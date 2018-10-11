@@ -10,7 +10,7 @@ struct source_position {
 };
 
 struct action_params {
-  double mu, csw, kappa;
+  double mu, mu_l, mu_s, csw, kappa;
   int bc;
 };
 

@@ -1,0 +1,46 @@
+#!/bin/bash
+#PBS -N "0-0000.nucleon.cA211.30.32"
+#PBS -q 
+#PBS -l nodes=4
+#PBS -l walltime=6:00:00
+#PBS -o /scratch/tuf47161/cA211.30.32/log/0-0000
+#PBS -e /scratch/tuf47161/cA211.30.32/log/0-0000
+        
+. /etc/profile
+. /etc/profile.d/modules.sh
+
+r=_REPL_
+n=_TRAJ_
+ENSEMBLE=cA2.XX.64/mu0p0009
+CORR_DIR=$WORK/$ENSEMBLE/Corr        
+cd $LOADL_STEP_INITDIR
+
+# module unload mpi.ibm
+# module load mpi.intel
+module load hdf5/mpi
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$HOME/loc-install/lib
+export OMP_NUM_THREADS=1
+
+mkdir -p $CORR_DIR/${r}-${n}
+
+function run {
+    s=$1
+    poe ../../src/main ./ini/${r}-${n}-${s}.ini.xml > ${r}-${n}-${s}.log
+    retval=$?
+    return $retval
+}
+
+case $LOADL_STEP_NAME in
+    source_0_3 )
+	run 0
+	;;
+    source_4_7 )
+	run 1
+	;;
+    source_8_11 )
+	run 2
+	;;
+    source_12_15 )
+	run 3
+	;;
+esac
