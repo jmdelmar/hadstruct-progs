@@ -263,20 +263,30 @@ parse_input(char fname[])
     /* First as strings */
     const char *alpha_ape = mxmlGetOpaque(mxmlFindPath(snode, "alpha_ape"));
     const char *alpha_gauss = mxmlGetOpaque(mxmlFindPath(snode, "alpha_gauss"));
+    const char *alpha_gauss_l = mxmlGetOpaque(mxmlFindPath(snode, "alpha_gauss_l"));
+    const char *alpha_gauss_s = mxmlGetOpaque(mxmlFindPath(snode, "alpha_gauss_s"));
     const char *n_ape = mxmlGetOpaque(mxmlFindPath(snode, "n_ape"));
     const char *n_gauss = mxmlGetOpaque(mxmlFindPath(snode, "n_gauss"));
+    const char *n_gauss_l = mxmlGetOpaque(mxmlFindPath(snode, "n_gauss_l"));
+    const char *n_gauss_s = mxmlGetOpaque(mxmlFindPath(snode, "n_gauss_s"));
 
     if(alpha_ape == NULL) {
       exit_tag_not_found("smearing/alpha_ape", fname);
     }
     if(alpha_gauss == NULL) {
-      exit_tag_not_found("smearing/alpha_gauss", fname);
+      alpha_gauss = alpha_gauss_l;
+      if( alpha_gauss_l == NULL || alpha_gauss_s == NULL ) {
+	exit_tag_not_found("smearing/alpha_gauss", fname);
+      }
     }
     if(n_ape == NULL) {
       exit_tag_not_found("smearing/n_ape", fname);
     }
     if(n_gauss == NULL) {
-      exit_tag_not_found("smearing/n_gauss", fname);
+      n_gauss = n_gauss_l;
+      if( n_gauss_l == NULL || n_gauss_s == NULL ) {
+	exit_tag_not_found("smearing/n_gauss", fname);
+      }
     }
 
     /* Convert to float. Check for errors */
@@ -290,7 +300,17 @@ parse_input(char fname[])
     if(e == alpha_gauss) {
       exit_convertions_error("smearing/alpha_gauss", fname, alpha_gauss);
     }
+
+    s.alpha_gauss_l = strtod(alpha_gauss_l, &e);
+    if(e == alpha_gauss_l) {
+      exit_convertions_error("smearing/alpha_gauss_l", fname, alpha_gauss_l);
+    }
     
+    s.alpha_gauss_s = strtod(alpha_gauss_s, &e);
+    if(e == alpha_gauss_s) {
+      exit_convertions_error("smearing/alpha_gauss_s", fname, alpha_gauss_s);
+    }
+
     s.n_ape = strtoul(n_ape, &e, 10);
     if(e == n_ape) {
       exit_convertions_error("smearing/n_ape", fname, n_ape);
@@ -300,6 +320,16 @@ parse_input(char fname[])
     if(e == n_gauss) {
       exit_convertions_error("smearing/n_gauss", fname, n_gauss);
     } 
+
+    s.n_gauss_l = strtoul(n_gauss_l, &e, 10);
+    if(e == n_gauss_l) {
+      exit_convertions_error("smearing/n_gauss_l", fname, n_gauss_l);
+    } 
+
+    s.n_gauss_s = strtoul(n_gauss_s, &e, 10);
+    if(e == n_gauss_s) {
+      exit_convertions_error("smearing/n_gauss_s", fname, n_gauss_s);
+      }
   }
 
   struct run_params rp;

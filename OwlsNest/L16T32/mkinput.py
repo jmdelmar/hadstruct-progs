@@ -5,15 +5,17 @@ import re
 
 L = 32
 T = 64
-procs = 4,4,4,8
+procs = 2,2,4,4
 
 mu = 0.003
+mu_l = 0.003
+mu_s = 0.022
 csw = 1.74
 kappa = 0.1400645
 
 n_ape = 50
 alpha_ape = 0.5
-n_gauss = 90
+n_gauss = 50
 alpha_gauss = 0.2
 
 multigrid = dict(verbosity = 2,
@@ -50,9 +52,9 @@ spos = sys.argv[3]
 
 spos_idx = tuple(list(map(int, spos.split(","))))
 
-conf_dir = "/lcrc/project/pieiclat/clauer/cA211.30.32/Confs/"
-corr_dir = "/lcrc/project/pieiclat/clauer/cA211.30.32/Corr/%s-%s" % (repl, traj)
-prop_dir = "/lcrc/project/pieiclat/clauer/cA211.30.32/Props/%s-%s" % (repl, traj)
+conf_dir = "/home/tuf47161/scratch/cA211.30.32/Confs/"
+corr_dir = "/home/tuf47161/scratch/cA211.30.32/Corr/%s-%s" % (repl, traj)
+prop_dir = "/home/tuf47161/scratch/cA211.30.32/Props/%s-%s" % (repl, traj)
 
 spos = get_spos(repl, traj, spos_idx)
 sources = [dict(coords = sp) for sp in spos]
@@ -73,7 +75,8 @@ ET.SubElement(s, "alpha_ape").text = str(alpha_ape)
 ET.SubElement(s, "n_gauss").text = str(n_gauss)
 ET.SubElement(s, "alpha_gauss").text = str(alpha_gauss)
 a = ET.SubElement(tree, "action")
-ET.SubElement(a, "mu").text = str(mu)
+ET.SubElement(a, "mu_l").text = str(mu_l)
+ET.SubElement(a, "mu_s").text = str(mu_s)
 ET.SubElement(a, "kappa").text = str(kappa)
 ET.SubElement(a, "csw").text = str(csw)
 mg = ET.SubElement(tree, "multi-grid")

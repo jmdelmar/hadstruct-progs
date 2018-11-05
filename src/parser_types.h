@@ -26,6 +26,10 @@ struct multigrid_params {
 struct smearing_params {
   int n_gauss;
   double alpha_gauss;
+  int n_gauss_l;
+  double alpha_gauss_l;
+  int n_gauss_s;
+  double alpha_gauss_s;
   int n_ape;
   double alpha_ape;
 };

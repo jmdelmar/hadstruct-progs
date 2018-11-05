@@ -1,23 +1,20 @@
-#! /bin/bash
-#SBATCH -J 0-0000.0.job
-#SBATCH -o /lcrc/project/pieiclat/clauer/cA211.30.32/log/%x.%j.out
-#SBATCH -e /lcrc/project/pieiclat/clauer/cA211.30.32/log/%x.%j.err
-#SBATCH -p bdwall
-#SBATCH -A pieiclat
-#SBATCH -N 32
-#SBATCH -n 512
-#SBATCH -t 01:00:00
-#SBATCH -D /lcrc/project/pieiclat/clauer/cA211.30.32
-
+#!/bin/bash
+#PBS -N "0-0000.nucleon.cA211.30.32"
+#PBS -q qcd
+#PBS -l nodes=4
+#PBS -l walltime=6:00:00
+#PBS -o /scratch/tuf47161/cA211.30.32/log/0-0000
+#PBS -e /scratch/tuf47161/cA211.30.32/log/0-0000
+        
 r=0
 n=0000
 s=0
 
 ENSEMBLE=cA211.30.32
 
-PROJECT=/lcrc/project/pieiclat/clauer
+SCRATCH=/home/tuf47161/scratch
 
-RUN_DIR=${PROJECT}/${ENSEMBLE}
+RUN_DIR=${SCRATCH}/${ENSEMBLE}
 CORR_DIR=${RUN_DIR}/Corr        
 PROP_DIR=${RUN_DIR}/Props
 BIN_DIR=${HOME}/BDW/hadstruct-progs/src
@@ -30,9 +27,9 @@ INI_FILE=${r}-${n}.${s}.ini.xml
 cd ${RUN_DIR}
 
 #module load impi
-module load hdf5/1.10.1-n3h76ta
+module load hdf5/1.10.1-parallel
 
-export LD_LIBRARY_PATH=${HOME}/BDW/install/lib:${LD_LIBRARY_PATH}
+export LD_LIBRARY_PATH=${HOME}/install/lib:${LD_LIBRARY_PATH}
 export OMP_NUM_THREADS=1
 
 mkdir -p ${CORR_DIR}/${r}-${n}
@@ -52,5 +49,3 @@ echo "${RUN_CMD}"
 eval ${RUN_CMD}
 
 date
-
-

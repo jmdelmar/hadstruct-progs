@@ -1,0 +1,54 @@
+#! /bin/bash
+#PBS -N "0-0000.mesons.CPU.cA211.30.32"
+#PBS -q qcd
+#PBS -l nodes=4:ppn=16
+#PBS -l walltime=6:00:00
+#PBS -o /scratch/tuf47161/cA211.30.32/log/0-0000
+#PBS -e /scratch/tuf47161/cA211.30.32/log/0-0000
+
+r=0
+n=0000
+s=0
+
+ENSEMBLE=cA211.30.32
+
+SCRATCH=/home/tuf47161/scratch
+
+RUN_DIR=${SCRATCH}/${ENSEMBLE}
+CORR_DIR=${RUN_DIR}/Corr        
+PROP_DIR=${RUN_DIR}/Props
+BIN_DIR=${HOME}/hadstruct-progs/src
+BIN=mesons
+
+INI_DIR=${HOME}/hadstruct-progs/OwlsNest/${ENSEMBLE}/ini
+RUN_INI_DIR=${RUN_DIR}/ini
+INI_FILE=${r}-${n}.${s}.ini.xml
+
+cd ${RUN_DIR}
+
+module load mpi/openmpi/2.1.1
+module load hdf5/1.10.1-parallel
+module load intel-libs/2017.4.196
+
+export LD_LIBRARY_PATH=${HOME}/install/lib:${LD_LIBRARY_PATH}
+export OMP_NUM_THREADS=1
+
+mkdir -p ${CORR_DIR}/${r}-${n}
+mkdir -p ${PROP_DIR}/${r}-${n}
+mkdir -p ${RUN_INI_DIR}/
+
+cp ${BIN_DIR}/${BIN} ${RUN_DIR}/${BIN}
+cp ${INI_DIR}/${INI_FILE} ${RUN_INI_DIR}/${INI_FILE}
+
+RUN_CMD="mpirun ${RUN_DIR}/${BIN} ${RUN_INI_DIR}/${INI_FILE}"
+
+date
+
+echo "Run command is:"
+echo "${RUN_CMD}"
+
+eval ${RUN_CMD}
+
+date
+
+
