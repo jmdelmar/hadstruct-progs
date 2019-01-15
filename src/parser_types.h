@@ -30,6 +30,11 @@ struct smearing_params {
   double alpha_ape;
 };
 
+struct stout_smearing_params {
+  int n_stout;
+  double omega_stout;
+};
+
 struct run_params {
   char config[256];
   char prop_dir[256];
@@ -39,6 +44,15 @@ struct run_params {
   struct smearing_params smearing;
   struct source_position *spos;
   struct multigrid_params mg;
+  struct action_params act;
+};
+
+struct gl_params {
+  char config[256];
+  char corr_dir[256];  
+  int dims[ND], procs[ND];
+  int nsp;
+  struct stout_smearing_params smearing;
   struct action_params act;
 };
 
