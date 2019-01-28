@@ -64,7 +64,15 @@ main(int argc, char *argv[])
   qhg_lattice *lat = qhg_lattice_init(rp.dims, comms);
   int am_io_proc = lat->comms->proc_id == 0 ? 1 : 0;
   qhg_gauge_field gf = qhg_gauge_field_init(lat);  
-  
+
+  if(am_io_proc){
+    printf("List of momenta:\n");
+    for(int imom=0; imom<rp.spos[0].nmoms; imom++) {
+      int *mom_vec = rp.spos[0].mom_vecs[imom];
+      printf("mom = %d %d %d\n", mom_vec[0], mom_vec[1], mom_vec[2]);
+    }
+  }
+
   // Read config 
 
   qhg_read_gauge_field_ildg(gf, rp.config);
@@ -246,117 +254,306 @@ main(int argc, char *argv[])
     // Loop over sequential sink parameters
 
     for(int isnk=0; isnk<rp.spos[isrc].nsinks; isnk++) {
-      double sink_timer = qhg_stop_watch(0);
-      qhg_thrp_nn_sink_params thrp_snk = rp.spos[isrc].sinks[isnk];
-      for(int flav=0; flav<NF; flav++) {
-    	t0 = qhg_stop_watch(0);
-	switch(flav) {
-    	case 0: // pion
-	case 2: // kaon, strange part
-    	  qhg_mesons_sequential_sink(seq_src, sol_sm_u, sco[0], thrp_snk);
-    	  break;
-    	case 1: // kaon, up part
-    	  qhg_mesons_sequential_sink(seq_src, sol_sm_s, sco[0], thrp_snk);
-    	  break;
-    	}
-    	if(am_io_proc)
-    	  printf("Done sequential source in %g sec\n", qhg_stop_watch(t0));
-
-	// Smear the sequential source
-
-    	t0 = qhg_stop_watch(0);
-    	if(am_io_proc)
-    	  printf("Smearing the sequential sink, isnk = %2d, sink-source = %2d, flav = %s\n",
-    		 isnk, thrp_snk.dt, flav_str[flav]);
-    	for(int sp=0; sp<NS; sp++)
-    	  for(int co=0; co<NC; co++) {
-    	    if(am_io_proc)
-    	      printf("\tcol=%d, spin=%d\n", co, sp);
-    	    qhg_gauss_smear(seq_src[CS(sp,co)], seq_src[CS(sp,co)], gf_ape, alpha_gauss_f[flav], n_gauss_f[flav]);
-    	  }
-    	if(am_io_proc)
-    	  printf("Done smearing in %g sec\n", qhg_stop_watch(t0));
-
-	// Set mu to correct flavor
-
-	mg_state.params.mu = flav == 2 ? rp.act.mu_s : rp.act.mu_l;
-	DDalphaAMG_update_parameters(&mg_state.params, &mg_state.status);
-	
-	t0 = qhg_stop_watch(0);
-	for(int i=0; i<NS*NC; i++) {
-	  mg_invert(seq_sol[i], seq_src[i], 1e-9, plus, &mg_state);
-	  //mg_invert(seq_sol[i], seq_src[i], 1e-9, flav == 2 ? minus : plus, &mg_state);
-	}
-	
-    	if(am_io_proc)
-    	  printf("Done %s sequential inversion in %g sec\n", flav_str[flav], qhg_stop_watch(t0));
-		
-	// backprop = (\gamma_5 backprop)^\dagger
-
-    	qhg_prop_field_g5_G(seq_sol);
-    	qhg_prop_field_Gdag(seq_sol);
-        
-    	qhg_spinor_field *fwd[3] = {sol_u, sol_u, sol_s};
-	
-	// Three-point function. Needs gauge-field for derivative
-	// operators.
-
-    	t0 = qhg_stop_watch(0);
-    	qhg_thrp_correlator thrp;
-    	thrp.corr = qhg_nn_thrp(fwd[flav], seq_sol, gf, sco, thrp_snk);
-	switch( flav ) {
-	case 0: // pion
-	  thrp.flav = up;
-	  break;
-	case 1: // kaon, up part
-	  thrp.flav = up;
-	  break;
-	case 2: // kaon, strange part
-	  thrp.flav = strange;
-	  break;
-	}
-
-    	thrp.dt = thrp_snk.dt;
-
-	// If we are on the kaon strange part, we have calculated the 
-	// three-point functions for the down part of K^0 so we need 
-	// to take the complex conjugate to get the three-point functions
-	// for the strange part of K^+
-
-	if( flav == 2 )
-	  qhg_conjugate_thrp( thrp.corr, 1 );
-
-    	if(am_io_proc)
-    	  printf("Done three-point correlator in %g sec\n", qhg_stop_watch(t0));
-	
-	// Write three-point function
-
-    	if(true) {
-    	  t0 = qhg_stop_watch(0);
-    	  char *fname;
-    	  asprintf(&fname, "%s/thrp_%s_%s_%s_%s_dt%02d.%s.h5",
-    		   rp.corr_dir, part_str[flav], srcstr, smrstr_f[flav], apestr, 
-    		   thrp_snk.dt, flav_str[flav]);
-	  char *group;
-    	  asprintf(&group, "thrp/%s/dt%02d/%s",
-    		   srcstr, thrp_snk.dt, flav_str[flav]);
-	  qhg_correlator_shift(thrp.corr, thrp.corr.origin);
-	  qhg_write_mesons_thrp(fname, thrp, group);
-    	  if(am_io_proc)
-    	    printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0));
-    	  free(fname);
-	  free(group);
-    	}
-    	qhg_correlator_finalize(thrp.corr);
-	
-      }
-      if(am_io_proc)
-    	printf("Done sink: sink-source = %2d, in %g sec\n",
-    	       thrp_snk.dt, qhg_stop_watch(sink_timer));
-    }
       
-    // Free sequential source and solution
+      // NEW: loop over nmoms
+      for(int imom=0; imom<rp.spos[isrc].nmoms; imom++) {
+	int *mom_vec = rp.spos[isrc].mom_vecs[imom];
 
+	double sink_timer = qhg_stop_watch(0);
+	qhg_thrp_nn_sink_params thrp_snk = rp.spos[isrc].sinks[isnk];
+	for(int flav=0; flav<NF; flav++) {
+	  t0 = qhg_stop_watch(0);
+	  switch(flav) {
+	  case 0: // pion
+	  case 2: // kaon, strange part
+	    qhg_mesons_sequential_sink(seq_src, sol_sm_u, sco[0], thrp_snk);
+	    break;
+	  case 1: // kaon, up part
+	    qhg_mesons_sequential_sink(seq_src, sol_sm_s, sco[0], thrp_snk);
+	    break;
+	  }
+	  if(am_io_proc)
+	    printf("Done sequential source in %g sec\n", qhg_stop_watch(t0));
+
+	  // NEW: this function add the phase to the vector
+	  qhg_phase_sequential_sink(seq_src, seq_src, mom_vec, sco, -1);
+
+	
+	  // Smear the sequential source
+	  t0 = qhg_stop_watch(0);
+	  if(am_io_proc)
+	    printf("Smearing the sequential sink, isnk = %2d, sink-source = %2d, flav = %s\n",
+		   isnk, thrp_snk.dt, flav_str[flav]);
+	  for(int sp=0; sp<NS; sp++)
+	    for(int co=0; co<NC; co++) {
+	      if(am_io_proc)
+		printf("\tcol=%d, spin=%d\n", co, sp);
+	      qhg_gauss_smear(seq_src[CS(sp,co)], seq_src[CS(sp,co)], gf_ape, alpha_gauss_f[flav], n_gauss_f[flav]);
+	    }
+	  if(am_io_proc)
+	    printf("Done smearing in %g sec\n", qhg_stop_watch(t0));
+
+	  // Set mu to correct flavor
+
+	  mg_state.params.mu = flav == 2 ? rp.act.mu_s : rp.act.mu_l;
+	  DDalphaAMG_update_parameters(&mg_state.params, &mg_state.status);
+	
+	  t0 = qhg_stop_watch(0);
+	  for(int i=0; i<NS*NC; i++) {
+	    mg_invert(seq_sol[i], seq_src[i], 1e-9, plus, &mg_state);
+	    //mg_invert(seq_sol[i], seq_src[i], 1e-9, flav == 2 ? minus : plus, &mg_state);
+	  }
+	
+	  if(am_io_proc)
+	    printf("Done %s sequential inversion in %g sec\n", flav_str[flav], qhg_stop_watch(t0));
+		
+	  // backprop = (\gamma_5 backprop)^\dagger
+
+	  qhg_prop_field_g5_G(seq_sol);
+	  qhg_prop_field_Gdag(seq_sol);
+        
+	  qhg_spinor_field *fwd[3] = {sol_u, sol_u, sol_s};
+	
+	  // Three-point function. Needs gauge-field for derivative
+	  // operators.
+
+	  t0 = qhg_stop_watch(0);
+	  qhg_thrp_correlator thrp;
+	  thrp.corr = qhg_nn_thrp(fwd[flav], seq_sol, gf, sco, thrp_snk);
+	  switch( flav ) {
+	  case 0: // pion
+	    thrp.flav = up;
+	    break;
+	  case 1: // kaon, up part
+	    thrp.flav = up;
+	    break;
+	  case 2: // kaon, strange part
+	    thrp.flav = strange;
+	    break;
+	  }
+
+	  thrp.dt = thrp_snk.dt;
+
+	  // If we are on the kaon strange part, we have calculated the 
+	  // three-point functions for the down part of K^0 so we need 
+	  // to take the complex conjugate to get the three-point functions
+	  // for the strange part of K^+
+
+	  if( flav == 2 )
+	    qhg_conjugate_thrp( thrp.corr, 1 );
+
+	  if(am_io_proc)
+	    printf("Done three-point correlator in %g sec\n", qhg_stop_watch(t0));
+	
+	  // Write three-point function
+
+	  if(true) {
+	    t0 = qhg_stop_watch(0);
+	    char *fname;
+	    // NEW: changed the name for having the momentum
+	    asprintf(&fname, "%s/thrp_%s_%s_%s_%s_dt%02d_mom_%+d_%+d_%+d.%s.h5",
+		     rp.corr_dir, part_str[flav], srcstr, smrstr_f[flav], apestr, 
+		     thrp_snk.dt, mom_vec[0], mom_vec[1], mom_vec[2], flav_str[flav]);
+	    char *group;
+	    asprintf(&group, "thrp/%s/dt%02d/%s",
+		     srcstr, thrp_snk.dt, flav_str[flav]);
+	    qhg_correlator_shift(thrp.corr, thrp.corr.origin);
+	    qhg_write_mesons_thrp(fname, thrp, group);
+	    if(am_io_proc)
+	      printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0));
+	    free(fname);
+	    free(group);
+	  }
+	  qhg_correlator_finalize(thrp.corr);
+
+	  /*
+	   * NEW: this function does the second derivative. 
+	   * It's just for crosscheck,
+	   * At the moment let's keep it but after can be removed
+	   *
+	   * Three-point double derivative function. 
+	   */
+	  if(false) {
+	    t0 = qhg_stop_watch(0);
+	    thrp.corr = qhg_nn_thrp_der2(fwd[flav], seq_sol, gf, sco, thrp_snk);
+	    thrp.flav = flav;
+	    thrp.dt = thrp_snk.dt;
+	    thrp.proj = thrp_snk.proj;
+          
+	    if(am_io_proc)
+	      printf("Done three-point correlator in %g sec\n", qhg_stop_watch(t0));
+
+	    t0 = qhg_stop_watch(0);
+	    char *fname;
+	    // NEW: changed the name for having the momentum
+	    asprintf(&fname, "%s/thrp_der2_%s_%s_%s_%s_dt%02d_mom_%+d_%+d_%+d.%s.h5",
+		     rp.corr_dir, part_str[flav], srcstr, smrstr_f[flav], apestr, 
+		     thrp_snk.dt, mom_vec[0], mom_vec[1], mom_vec[2], flav_str[flav]);
+	    char *group;
+	    asprintf(&group, "thrp/%s/%s/dt%02d/%s",
+		     srcstr, proj_to_str(thrp_snk.proj),
+		     thrp_snk.dt, flav_str[flav]);
+	    qhg_correlator_shift(thrp.corr, thrp.corr.origin);
+	    qhg_write_nn_thrp_der2(fname, thrp, group);
+	    if(am_io_proc)
+	      printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0));
+	    free(fname);
+	    free(group);
+
+	    qhg_correlator_finalize(thrp.corr);
+	  }
+
+	  /*
+	   * NEW: this function can be used to skip some combination of derivative.
+	   * At the moment returns false by default,
+	   * which means all the directions will be done
+	   */
+	  bool to_skip(int dirs[8]) {
+	    if(am_io_proc) {
+	      char dir[4] = {'t', 'x', 'y', 'z'};
+	      printf("Running over dirs: ");
+	      for(int i=0; i<8; i++) {
+		if(dirs[i] > 0) 
+		  printf("%+d%c ",(1-2*(i/4))*dirs[i], dir[i%4]);
+	      }
+	      printf("\n");
+	    }
+	    return false;
+	  }
+	
+	  /*
+	   * NEW: Here is the loop over all the derivative. 
+	   * We do all of them so we can crosscheck, 
+	   * but after only 2nd and 3rd will be done here.
+	   */
+	  for(int der_order = 1; der_order <=3; der_order++) {
+	    t0 = qhg_stop_watch(0);
+	    qhg_der_correlator corr = qhg_nn_thrp_der(fwd[flav], seq_sol, gf, sco, thrp_snk, der_order, to_skip, true, true);
+
+	    switch( flav ) {
+	    case 0: // pion
+	      corr.flav = up;
+	      break;
+	    case 1: // kaon, up part
+	      corr.flav = up;
+	      break;
+	    case 2: // kaon, strange part
+	      corr.flav = strange;
+	      break;
+	    }
+	    corr.dt = thrp_snk.dt;
+
+	    if( der_order == 2 || der_order == 3) {
+	      qhg_der_correlator corr_avg = qhg_avg_der_combos(corr, mom_vec); 
+	      //corr = qhg_averaged_der_correlator_copy(corr_avg);
+	      //qhg_der_correlator_finalize(corr_avg);
+	    if(am_io_proc)
+	      printf("Done three-point %d derivative correlator in %g sec\n", der_order, qhg_stop_watch(t0));
+	
+	    /*
+	      Write three-point function
+	    */
+	    if(true) {
+	      t0 = qhg_stop_watch(0);
+	      char *fname;
+	      // NEW: changed the name for having the momentum
+	      asprintf(&fname, "%s/thrp_der%d_%s_%s_%s_%s_dt%02d_mom_%+d_%+d_%+d.%s.h5",
+		       rp.corr_dir, der_order, part_str[flav], srcstr, smrstr_f[flav], apestr, 
+		       thrp_snk.dt, mom_vec[0], mom_vec[1], mom_vec[2], flav_str[flav]);
+	      char *group;
+	      asprintf(&group, "thrp/%s/%s/dt%02d/%s",
+		       srcstr, proj_to_str(thrp_snk.proj),
+		       thrp_snk.dt, flav_str[flav]);
+	      thrp.corr.lat = corr.lat;
+	      thrp.corr.site_size = corr.site_size;
+	      if(am_io_proc)
+		printf("Preparing to write file %s\n", fname);
+	      for(int id=0; id < corr.ncorr; id++) {
+		int origin[4] = {corr.origin[0], corr.origin[1], corr.origin[2], corr.origin[3]};
+		thrp.corr.origin = origin;
+		thrp.corr.C = corr.C[id];
+		if(thrp.corr.C != NULL)
+		  qhg_correlator_shift(thrp.corr, thrp.corr.origin);
+	      }
+	      for(int i=0; i < 4; i++)
+		corr.origin[i] = 0;
+
+	      qhg_write_mesons_averaged_thrp_der(fname, corr, group);
+	    } else {
+	    
+	      if(am_io_proc)
+		printf("Done three-point %d derivative correlator in %g sec\n", der_order, qhg_stop_watch(t0));
+	
+	      /*
+		Write three-point function
+	      */
+	      if(true) {
+		t0 = qhg_stop_watch(0);
+		char *fname;
+		// NEW: changed the name for having the momentum
+		asprintf(&fname, "%s/thrp_der%d_%s_%s_%s_%s_dt%02d_mom_%+d_%+d_%+d.%s.h5",
+			 rp.corr_dir, der_order, part_str[flav], srcstr, smrstr_f[flav], apestr, 
+			 thrp_snk.dt, mom_vec[0], mom_vec[1], mom_vec[2], flav_str[flav]);
+		char *group;
+		asprintf(&group, "thrp/%s/%s/dt%02d/%s",
+			 srcstr, proj_to_str(thrp_snk.proj),
+			 thrp_snk.dt, flav_str[flav]);
+		thrp.corr.lat = corr.lat;
+		thrp.corr.site_size = corr.site_size;
+		if(am_io_proc)
+		  printf("Preparing to write file %s\n", fname);
+		for(int id=0; id < corr.ncorr; id++) {
+		  int origin[4] = {corr.origin[0], corr.origin[1], corr.origin[2], corr.origin[3]};
+		  thrp.corr.origin = origin;
+		  thrp.corr.C = corr.C[id];
+		  if(thrp.corr.C != NULL)
+		    qhg_correlator_shift(thrp.corr, thrp.corr.origin);
+		}
+		for(int i=0; i < 4; i++)
+		  corr.origin[i] = 0;
+
+		qhg_write_mesons_thrp_der(fname, corr, group);
+	      }
+	      /*
+		if( der_order == 2 || der_order == 3) {
+		qhg_write_mesons_averaged_thrp_der(fname, corr, group);
+		} else {
+		qhg_write_mesons_thrp_der(fname, corr, group);
+		}
+	      */
+	      for(int id=0; id < corr.ncorr; id++) {
+		MPI_Barrier(comms->comm);
+		if(am_io_proc){
+		  printf("FLAG0\n");
+		}
+		MPI_Barrier(comms->comm);
+
+		if(corr.C[id] != NULL)
+		  free(corr.C[id]);
+
+	      }
+
+	      MPI_Barrier(comms->comm);
+	      if(am_io_proc){
+		printf("FLAG1\n");
+	      }
+	      MPI_Barrier(comms->comm);
+
+	      if(am_io_proc)
+		printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0));
+	      free(fname);
+	      free(group);
+	    }
+	    }
+	  }
+	  if(am_io_proc)
+	    printf("Done sink: sink-source = %2d, in %g sec\n",
+		   thrp_snk.dt, qhg_stop_watch(sink_timer));
+	}
+      }
+      
+      // Free sequential source and solution
+    
     for(int i=0; i<NC*NS; i++) {
       qhg_spinor_field_finalize(seq_src[i]);
       qhg_spinor_field_finalize(seq_sol[i]);
@@ -365,11 +562,11 @@ main(int argc, char *argv[])
     if(am_io_proc)
       printf("Done source, coords (t, x, y, z) = (%d, %d, %d, %d), in %g sec\n",
 	     sco[0], sco[1], sco[2], sco[3], qhg_stop_watch(source_timer));
-
+    
   }
   free(smrstr_l);
   free(smrstr_s);
-
+  
   mg_finalize();
 
   // Destroy spinor- and gauge-fields

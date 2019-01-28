@@ -238,6 +238,23 @@ parse_input(char fname[])
 	     &r[isp].coords[1],
 	     &r[isp].coords[2],
 	     &r[isp].coords[3]);
+      /* Enumerate "vec" elements (if any) */
+      mxml_index_t *mom_index = mxmlIndexNew(n, "mom", NULL);
+      if(mom_index == NULL) {
+	exit_tag_not_found("mom", fname);
+	}
+      int nmoms = mxmlIndexGetCount(mom_index);
+      r[isp].nmoms = nmoms;
+      int imom = 0;
+      /* Iterate over "mom" elements */
+      for(mxml_node_t *m=mxmlIndexEnum(mom_index); m!=NULL; m=mxmlIndexEnum(mom_index)) {
+	const char *vec = mxmlGetOpaque(mxmlFindPath(m, "vec"));
+	sscanf(vec, "%d %d %d",
+	       &r[isp].mom_vecs[imom][0],
+	       &r[isp].mom_vecs[imom][1],
+	       &r[isp].mom_vecs[imom][2]);
+	imom++;
+      }
       /* Enumerate "sink" elements (if any) */
       mxml_index_t *it = mxmlIndexNew(n, "sink", NULL);
       int nsnk = mxmlIndexGetCount(it);
@@ -247,6 +264,7 @@ parse_input(char fname[])
       /* Iterate over "sink" elements */
       for(mxml_node_t *s=mxmlIndexEnum(it); s!=NULL; s=mxmlIndexEnum(it)) {
 	r[isp].sinks[isnk].proj = str_to_proj((char *)trim(mxmlGetOpaque(mxmlFindPath(s, "proj"))));
+	r[isp].sinks[isnk].dt = atoi(mxmlGetOpaque(mxmlFindPath(s, "dt")));
 	r[isp].sinks[isnk].dt = atoi(mxmlGetOpaque(mxmlFindPath(s, "dt")));
 	isnk++;
       }

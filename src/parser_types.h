@@ -2,9 +2,12 @@
 #define _PARSER_TYPES_H 1
 #include <qhg.h>
 #define MG_MAX_LEVELS 6
+#define NMOM 12
 
 struct source_position {
   int coords[ND];
+  int nmoms;
+  int mom_vecs[NMOM][ND-1];
   int nsinks;
   qhg_thrp_nn_sink_params *sinks;
 };

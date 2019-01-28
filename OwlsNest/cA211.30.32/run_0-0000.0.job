@@ -1,8 +1,8 @@
 #! /bin/bash
 #PBS -N "0-0000.mesons.CPU.cA211.30.32"
 #PBS -q qcd
-#PBS -l nodes=4:ppn=16
-#PBS -l walltime=6:00:00
+#PBS -l nodes=8:ppn=16
+#PBS -l walltime=48:00:00
 #PBS -o /scratch/tuf47161/cA211.30.32/log/0-0000
 #PBS -e /scratch/tuf47161/cA211.30.32/log/0-0000
 
@@ -40,15 +40,17 @@ mkdir -p ${RUN_INI_DIR}/
 cp ${BIN_DIR}/${BIN} ${RUN_DIR}/${BIN}
 cp ${INI_DIR}/${INI_FILE} ${RUN_INI_DIR}/${INI_FILE}
 
+OUTPUT=/scratch/tuf47161/cA211.30.32/log/0-0000/${PBS_JOBNAME}.${PBS_JOBID}.out
+
 RUN_CMD="mpirun ${RUN_DIR}/${BIN} ${RUN_INI_DIR}/${INI_FILE}"
 
-date
+date > ${OUTPUT}
 
-echo "Run command is:"
-echo "${RUN_CMD}"
+echo "Run command is:" >> ${OUTPUT}
+echo "${RUN_CMD}" >> ${OUTPUT}
 
-eval ${RUN_CMD}
+eval ${RUN_CMD} >> ${OUTPUT}
 
-date
+date >> ${OUTPUT}
 
 
