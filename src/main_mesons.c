@@ -390,9 +390,8 @@ main(int argc, char *argv[])
 		     rp.corr_dir, part_str[flav], srcstr, smrstr_f[flav], apestr, 
 		     thrp_snk.dt, mom_vec[0], mom_vec[1], mom_vec[2], flav_str[flav]);
 	    char *group;
-	    asprintf(&group, "thrp/%s/%s/dt%02d/%s",
-		     srcstr, proj_to_str(thrp_snk.proj),
-		     thrp_snk.dt, flav_str[flav]);
+	    asprintf(&group, "thrp/%s/dt%02d/%s",
+		     srcstr, thrp_snk.dt, flav_str[flav]);
 	    qhg_correlator_shift(thrp.corr, thrp.corr.origin);
 	    qhg_write_nn_thrp_der2(fname, thrp, group);
 	    if(am_io_proc)
@@ -445,8 +444,10 @@ main(int argc, char *argv[])
 
 	    if( der_order == 2 || der_order == 3) {
 	      qhg_der_correlator corr_avg = qhg_avg_der_combos(corr, mom_vec); 
-	      //corr = qhg_averaged_der_correlator_copy(corr_avg);
-	      //qhg_der_correlator_finalize(corr_avg);
+	      corr = qhg_averaged_der_correlator_copy(corr_avg);
+	      qhg_der_correlator_finalize(corr_avg);
+	    }
+
 	    if(am_io_proc)
 	      printf("Done three-point %d derivative correlator in %g sec\n", der_order, qhg_stop_watch(t0));
 	
@@ -466,11 +467,11 @@ main(int argc, char *argv[])
 		       thrp_snk.dt, flav_str[flav]);
 	      thrp.corr.lat = corr.lat;
 	      thrp.corr.site_size = corr.site_size;
+	      int origin[4] = {corr.origin[0], corr.origin[1], corr.origin[2], corr.origin[3]};
+	      thrp.corr.origin = origin;
 	      if(am_io_proc)
 		printf("Preparing to write file %s\n", fname);
 	      for(int id=0; id < corr.ncorr; id++) {
-		int origin[4] = {corr.origin[0], corr.origin[1], corr.origin[2], corr.origin[3]};
-		thrp.corr.origin = origin;
 		thrp.corr.C = corr.C[id];
 		if(thrp.corr.C != NULL)
 		  qhg_correlator_shift(thrp.corr, thrp.corr.origin);
@@ -478,81 +479,30 @@ main(int argc, char *argv[])
 	      for(int i=0; i < 4; i++)
 		corr.origin[i] = 0;
 
-	      qhg_write_mesons_averaged_thrp_der(fname, corr, group);
-	    } else {
-	    
-	      if(am_io_proc)
-		printf("Done three-point %d derivative correlator in %g sec\n", der_order, qhg_stop_watch(t0));
-	
-	      /*
-		Write three-point function
-	      */
-	      if(true) {
-		t0 = qhg_stop_watch(0);
-		char *fname;
-		// NEW: changed the name for having the momentum
-		asprintf(&fname, "%s/thrp_der%d_%s_%s_%s_%s_dt%02d_mom_%+d_%+d_%+d.%s.h5",
-			 rp.corr_dir, der_order, part_str[flav], srcstr, smrstr_f[flav], apestr, 
-			 thrp_snk.dt, mom_vec[0], mom_vec[1], mom_vec[2], flav_str[flav]);
-		char *group;
-		asprintf(&group, "thrp/%s/%s/dt%02d/%s",
-			 srcstr, proj_to_str(thrp_snk.proj),
-			 thrp_snk.dt, flav_str[flav]);
-		thrp.corr.lat = corr.lat;
-		thrp.corr.site_size = corr.site_size;
-		if(am_io_proc)
-		  printf("Preparing to write file %s\n", fname);
-		for(int id=0; id < corr.ncorr; id++) {
-		  int origin[4] = {corr.origin[0], corr.origin[1], corr.origin[2], corr.origin[3]};
-		  thrp.corr.origin = origin;
-		  thrp.corr.C = corr.C[id];
-		  if(thrp.corr.C != NULL)
-		    qhg_correlator_shift(thrp.corr, thrp.corr.origin);
-		}
-		for(int i=0; i < 4; i++)
-		  corr.origin[i] = 0;
-
+	      if( der_order == 2 || der_order == 3) {
+		qhg_write_mesons_averaged_thrp_der(fname, corr, group);
+	      } else {
 		qhg_write_mesons_thrp_der(fname, corr, group);
 	      }
-	      /*
-		if( der_order == 2 || der_order == 3) {
-		qhg_write_mesons_averaged_thrp_der(fname, corr, group);
-		} else {
-		qhg_write_mesons_thrp_der(fname, corr, group);
-		}
-	      */
-	      for(int id=0; id < corr.ncorr; id++) {
-		MPI_Barrier(comms->comm);
-		if(am_io_proc){
-		  printf("FLAG0\n");
-		}
-		MPI_Barrier(comms->comm);
-
+	      
+	      for(int id=0; id < corr.ncorr; id++)
 		if(corr.C[id] != NULL)
 		  free(corr.C[id]);
-
-	      }
-
-	      MPI_Barrier(comms->comm);
-	      if(am_io_proc){
-		printf("FLAG1\n");
-	      }
-	      MPI_Barrier(comms->comm);
 
 	      if(am_io_proc)
 		printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0));
 	      free(fname);
 	      free(group);
 	    }
-	    }
 	  }
-	  if(am_io_proc)
-	    printf("Done sink: sink-source = %2d, in %g sec\n",
-		   thrp_snk.dt, qhg_stop_watch(sink_timer));
 	}
+	if(am_io_proc)
+	  printf("Done sink: sink-source = %2d, in %g sec\n",
+		 thrp_snk.dt, qhg_stop_watch(sink_timer));
       }
+    }
       
-      // Free sequential source and solution
+    // Free sequential source and solution
     
     for(int i=0; i<NC*NS; i++) {
       qhg_spinor_field_finalize(seq_src[i]);
