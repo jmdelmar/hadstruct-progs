@@ -2,7 +2,7 @@
 #define _PARSER_TYPES_H 1
 #include <qhg.h>
 #define MG_MAX_LEVELS 6
-#define NMOM 12
+#define NMOM 20
 
 struct source_position {
   int coords[ND];

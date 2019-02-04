@@ -425,7 +425,7 @@ main(int argc, char *argv[])
 	   * We do all of them so we can crosscheck, 
 	   * but after only 2nd and 3rd will be done here.
 	   */
-	  for(int der_order = 1; der_order <=3; der_order++) {
+	  for(int der_order = 2; der_order <=3; der_order++) {
 	    t0 = qhg_stop_watch(0);
 	    qhg_der_correlator corr = qhg_nn_thrp_der(fwd[flav], seq_sol, gf, sco, thrp_snk, der_order, to_skip, true, true);
 
@@ -444,6 +444,7 @@ main(int argc, char *argv[])
 
 	    if( der_order == 2 || der_order == 3) {
 	      qhg_der_correlator corr_avg = qhg_avg_der_combos(corr, mom_vec); 
+	      qhg_der_correlator_finalize(corr);
 	      corr = qhg_averaged_der_correlator_copy(corr_avg);
 	      qhg_der_correlator_finalize(corr_avg);
 	    }

@@ -1,7 +1,7 @@
 #! /bin/bash
 #PBS -N "1505.mesons.CPU.L16T32"
 #PBS -q qcd
-#PBS -l nodes=8:ppn=16
+#PBS -l nodes=2:ppn=16
 #PBS -l walltime=6:00:00
 #PBS -o /scratch/tuf47161/L16T32/log
 #PBS -e /scratch/tuf47161/L16T32/log
