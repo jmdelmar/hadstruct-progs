@@ -40,7 +40,7 @@ mkdir -p ${RUN_INI_DIR}/
 cp ${BIN_DIR}/${BIN} ${RUN_DIR}/${BIN}
 cp ${INI_DIR}/${INI_FILE} ${RUN_INI_DIR}/${INI_FILE}
 
-OUTPUT=/scratch/tuf47161/cA211.30.32/log/0-0000/${PBS_JOBNAME}.${PBS_JOBID}.out
+OUTPUT=${RUN_DIR}/log/0-0000/${PBS_JOBNAME}.${PBS_JOBID}.out
 
 RUN_CMD="mpirun ${RUN_DIR}/${BIN} ${RUN_INI_DIR}/${INI_FILE}"
 

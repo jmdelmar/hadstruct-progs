@@ -5,7 +5,7 @@ import re
 
 L = 32
 T = 64
-procs = 2,4,4,4
+procs = 4,4,4,2
 
 mu = 0.003
 mu_l = 0.003
@@ -56,14 +56,23 @@ def get_moms():
                    [  0, -1, +1], \
                    [ -1, -1,  0], \
                    [ -1,  0, -1], \
-                   [  0, -1, -1] ]
+                   [  0, -1, -1], \
+                   [ +1, +1, +1], \
+                   [ -1, +1, +1], \
+                   [ +1, -1, +1], \
+                   [ +1, +1, -1], \
+                   [ +1, -1, -1], \
+                   [ -1, +1, -1], \
+                   [ -1, -1, +1], \
+                   [ -1, -1, -1] ]
+
     for phs in phase_vecs:
         moms.append(phs)
     return moms
 
 def get_sinks():
     sinks = []
-    for dt in 14,16,18,20:
+    for dt in 14,:
         for pr in "P0",:
             sinks.append(tuple([int(dt),pr]))
     return sinks
