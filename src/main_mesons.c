@@ -447,6 +447,8 @@ main(int argc, char *argv[])
 	      qhg_der_correlator_finalize(corr);
 	      corr = qhg_averaged_der_correlator_copy(corr_avg);
 	      qhg_der_correlator_finalize(corr_avg);
+	      if(am_io_proc)
+		printf("ncorr: %d\n", corr.ncorr);
 	    }
 
 	    if(am_io_proc)
@@ -468,11 +470,11 @@ main(int argc, char *argv[])
 		       thrp_snk.dt, flav_str[flav]);
 	      thrp.corr.lat = corr.lat;
 	      thrp.corr.site_size = corr.site_size;
-	      int origin[4] = {corr.origin[0], corr.origin[1], corr.origin[2], corr.origin[3]};
-	      thrp.corr.origin = origin;
 	      if(am_io_proc)
 		printf("Preparing to write file %s\n", fname);
 	      for(int id=0; id < corr.ncorr; id++) {
+		int origin[4] = {corr.origin[0], corr.origin[1], corr.origin[2], corr.origin[3]};
+		thrp.corr.origin = origin;
 		thrp.corr.C = corr.C[id];
 		if(thrp.corr.C != NULL)
 		  qhg_correlator_shift(thrp.corr, thrp.corr.origin);
@@ -483,7 +485,7 @@ main(int argc, char *argv[])
 	      if( der_order == 2 || der_order == 3) {
 		qhg_write_mesons_averaged_thrp_der(fname, corr, group);
 	      } else {
-		qhg_write_mesons_thrp_der(fname, corr, group);
+	      qhg_write_mesons_thrp_der(fname, corr, group);
 	      }
 	      
 	      for(int id=0; id < corr.ncorr; id++)
