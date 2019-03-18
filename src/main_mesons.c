@@ -289,15 +289,9 @@ main(int argc, char *argv[])
 	  if(am_io_proc)
 	    printf("Done smearing in %g sec\n", qhg_stop_watch(t0));
 
-	  if(am_io_proc)
-	    printf("%f %+fi\n", creal(seq_src[0].field[0]), cimag(seq_src[0].field[0])); 
-
 	  // NEW: this function adds the phase to the vector
 	  qhg_phase_sequential_sink(seq_src, seq_src, mom_vec, sco, -1.0);
 
-	  if(am_io_proc)
-	    printf("%f %+fi\n", creal(seq_src[0].field[0]), cimag(seq_src[0].field[0])); 
-	
 	  // Set mu to correct flavor
 
 	  mg_state.params.mu = flav == 2 ? rp.act.mu_s : rp.act.mu_l;
