@@ -1,55 +1,56 @@
 #! /bin/bash
-#SBATCH -J _REPL_-_TRAJ_._SRC_.job
-#SBATCH -o /home/clauer/BDW/hadstruct-progs/Bebop/cA211.30.32/log/%x.%j.out
-#SBATCH -e /home/clauer/BDW/hadstruct-progs/Bebop/cA211.30.32/log/%x.%j.err
-#SBATCH -p bdwall
-#SBATCH -A pieiclat
-#SBATCH -N 16
-#SBATCH -n 512
-#SBATCH -t 24:00:00
-#SBATCH -D /lcrc/project/pieiclat/clauer/cA211.30.32
+#PBS -N "_CONF_._SRC_.mesons.CPU.cA211.30.32"
+#PBS -q qcd
+#PBS -l nodes=8:ppn=16
+#PBS -l walltime=48:00:00
+#PBS -o /scratch/tuf47161/cA211.30.32/log/_CONF_
+#PBS -e /scratch/tuf47161/cA211.30.32/log/_CONF_
 
-r=_REPL_
-n=_TRAJ_
+conf="_CONF_"
 s=_SRC_
 
 ENSEMBLE=cA211.30.32
-PROJECT=/lcrc/project/pieiclat/clauer
+SCRATCH=/home/tuf47161/scratch
 
-RUN_DIR=${PROJECT}/${ENSEMBLE}
+RUN_DIR=${SCRATCH}/${ENSEMBLE}
 CORR_DIR=${RUN_DIR}/Corr        
 PROP_DIR=${RUN_DIR}/Props
-BIN_DIR=${HOME}/BDW/hadstruct-progs/src
+BIN_DIR=${HOME}/hadstruct-progs/src
 BIN=mesons
 
-INI_DIR=${HOME}/BDW/hadstruct-progs/Bebop/${ENSEMBLE}/ini
+INI_DIR=${HOME}/hadstruct-progs/OwlsNest/${ENSEMBLE}/ini
 RUN_INI_DIR=${RUN_DIR}/ini
-INI_FILE=${r}-${n}.${s}.ini.xml
+INI_FILE=${conf}.${s}.ini.xml
 
 cd ${RUN_DIR}
 
-#module load impi
-module load hdf5/1.10.1-n3h76ta
+module load mpi/openmpi/2.1.1
+module load hdf5/1.10.1-parallel
+module load intel-libs/2017.4.196
 
-export LD_LIBRARY_PATH=${HOME}/BDW/install/lib:${LD_LIBRARY_PATH}
+export LD_LIBRARY_PATH=${HOME}/install/lib:${LD_LIBRARY_PATH}
 export OMP_NUM_THREADS=1
 
-mkdir -p ${CORR_DIR}/${r}-${n}
-mkdir -p ${PROP_DIR}/${r}-${n}
+mkdir -p ${CORR_DIR}/${conf}
+mkdir -p ${PROP_DIR}/${conf}
 mkdir -p ${RUN_INI_DIR}/
 
-cp ${BIN_DIR}/${BIN} ${RUN_DIR}/${BIN}
-cp ${INI_DIR}/${INI_FILE} ${RUN_INI_DIR}/${INI_FILE}
+#cp ${BIN_DIR}/${BIN} ${RUN_DIR}/${BIN}
+#cp ${INI_DIR}/${INI_FILE} ${RUN_INI_DIR}/${INI_FILE}
 
-RUN_CMD="srun ${RUN_DIR}/${BIN} ${RUN_INI_DIR}/${INI_FILE}"
+LOG_DIR=${RUN_DIR}/log/${CONF}
+mkdir -p ${LOG_DIR}
+OUTPUT=${LOG_DIR}/${PBS_JOBNAME}.${PBS_JOBID}.out
 
-date
+RUN_CMD="mpirun ${BIN_DIR}/${BIN} ${INI_DIR}/${INI_FILE}"
 
-echo "Run command is:"
-echo "${RUN_CMD}"
+date > ${OUTPUT}
 
-eval ${RUN_CMD}
+echo "Run command is:" >> ${OUTPUT}
+echo "${RUN_CMD}" >> ${OUTPUT}
 
-date
+eval ${RUN_CMD} >> ${OUTPUT}
+
+date >> ${OUTPUT}
 
 
