@@ -92,7 +92,6 @@ mg_init(struct run_params rp, qhg_gauge_field gf)
   init.rnd_seeds = NULL;
   DDalphaAMG_initialize(&init, &params, &status);  
 
-
   for(int i=0; i<rp.mg.n_levels; i++) {
     params.setup_iterations[i] = rp.mg.setup_iterations[i];
     params.mg_basis_vectors[i] = rp.mg.n_basis_vectors[i];

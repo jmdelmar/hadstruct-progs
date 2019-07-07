@@ -1,0 +1,55 @@
+#! /bin/bash
+#SBATCH -J _REPL_-_TRAJ_._SRC_.job
+#SBATCH -o /home/clauer/BDW/hadstruct-progs/Bebop/cA211.30.32/log/%x.%j.out
+#SBATCH -e /home/clauer/BDW/hadstruct-progs/Bebop/cA211.30.32/log/%x.%j.err
+#SBATCH -p bdwall
+#SBATCH -A pieiclat
+#SBATCH -N 16
+#SBATCH -n 512
+#SBATCH -t 24:00:00
+#SBATCH -D /lcrc/project/pieiclat/clauer/cA211.30.32
+
+r=_REPL_
+n=_TRAJ_
+s=_SRC_
+
+ENSEMBLE=cA211.30.32
+PROJECT=/lcrc/project/pieiclat/clauer
+
+RUN_DIR=${PROJECT}/${ENSEMBLE}
+CORR_DIR=${RUN_DIR}/Corr        
+PROP_DIR=${RUN_DIR}/Props
+BIN_DIR=${HOME}/BDW/hadstruct-progs/src
+BIN=mesons
+
+INI_DIR=${HOME}/BDW/hadstruct-progs/Bebop/${ENSEMBLE}/ini
+RUN_INI_DIR=${RUN_DIR}/ini
+INI_FILE=${r}-${n}.${s}.ini.xml
+
+cd ${RUN_DIR}
+
+#module load impi
+module load hdf5/1.10.1-n3h76ta
+
+export LD_LIBRARY_PATH=${HOME}/BDW/install/lib:${LD_LIBRARY_PATH}
+export OMP_NUM_THREADS=1
+
+mkdir -p ${CORR_DIR}/${r}-${n}
+mkdir -p ${PROP_DIR}/${r}-${n}
+mkdir -p ${RUN_INI_DIR}/
+
+cp ${BIN_DIR}/${BIN} ${RUN_DIR}/${BIN}
+cp ${INI_DIR}/${INI_FILE} ${RUN_INI_DIR}/${INI_FILE}
+
+RUN_CMD="srun ${RUN_DIR}/${BIN} ${RUN_INI_DIR}/${INI_FILE}"
+
+date
+
+echo "Run command is:"
+echo "${RUN_CMD}"
+
+eval ${RUN_CMD}
+
+date
+
+

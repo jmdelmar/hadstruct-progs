@@ -93,10 +93,15 @@ parse_input(char fname[])
     mxml_node_t *anode = mxmlFindElement(node, node, "action", NULL, NULL, MXML_DESCEND);
     /* First as strings */
     const char *mu = mxmlGetOpaque(mxmlFindPath(anode, "mu"));
+    const char *mu_l = mxmlGetOpaque(mxmlFindPath(anode, "mu_l"));
+    const char *mu_s = mxmlGetOpaque(mxmlFindPath(anode, "mu_s"));
     const char *kappa = mxmlGetOpaque(mxmlFindPath(anode, "kappa"));
     const char *csw = mxmlGetOpaque(mxmlFindPath(anode, "csw"));
     if(mu == NULL) {
-      exit_tag_not_found("action/mu", fname);
+      mu = mu_l;
+      if(mu_l == NULL || mu_s == NULL) {
+	exit_tag_not_found("action/mu", fname);
+      }
     }
     if(kappa == NULL) {
       exit_tag_not_found("action/kappa", fname);
@@ -110,6 +115,14 @@ parse_input(char fname[])
     a.mu = strtod(mu, &e);
     if(e == mu) {
       exit_convertions_error("action/mu", fname, mu);
+    } 
+    a.mu_l = strtod(mu_l, &e);
+    if(e == mu_l) {
+      exit_convertions_error("action/mu_l", fname, mu_l);
+    } 
+    a.mu_s = strtod(mu_s, &e);
+    if(e == mu_s) {
+      exit_convertions_error("action/mu_s", fname, mu_s);
     } 
     a.kappa = strtod(kappa, &e);
     if(e == kappa) {
@@ -225,6 +238,23 @@ parse_input(char fname[])
 	     &r[isp].coords[1],
 	     &r[isp].coords[2],
 	     &r[isp].coords[3]);
+      /* Enumerate "vec" elements (if any) */
+      mxml_index_t *mom_index = mxmlIndexNew(n, "mom", NULL);
+      if(mom_index == NULL) {
+	exit_tag_not_found("mom", fname);
+	}
+      int nmoms = mxmlIndexGetCount(mom_index);
+      r[isp].nmoms = nmoms;
+      int imom = 0;
+      /* Iterate over "mom" elements */
+      for(mxml_node_t *m=mxmlIndexEnum(mom_index); m!=NULL; m=mxmlIndexEnum(mom_index)) {
+	const char *vec = mxmlGetOpaque(mxmlFindPath(m, "vec"));
+	sscanf(vec, "%d %d %d",
+	       &r[isp].mom_vecs[imom][0],
+	       &r[isp].mom_vecs[imom][1],
+	       &r[isp].mom_vecs[imom][2]);
+	imom++;
+      }
       /* Enumerate "sink" elements (if any) */
       mxml_index_t *it = mxmlIndexNew(n, "sink", NULL);
       int nsnk = mxmlIndexGetCount(it);
@@ -234,6 +264,7 @@ parse_input(char fname[])
       /* Iterate over "sink" elements */
       for(mxml_node_t *s=mxmlIndexEnum(it); s!=NULL; s=mxmlIndexEnum(it)) {
 	r[isp].sinks[isnk].proj = str_to_proj((char *)trim(mxmlGetOpaque(mxmlFindPath(s, "proj"))));
+	r[isp].sinks[isnk].dt = atoi(mxmlGetOpaque(mxmlFindPath(s, "dt")));
 	r[isp].sinks[isnk].dt = atoi(mxmlGetOpaque(mxmlFindPath(s, "dt")));
 	isnk++;
       }
@@ -250,20 +281,30 @@ parse_input(char fname[])
     /* First as strings */
     const char *alpha_ape = mxmlGetOpaque(mxmlFindPath(snode, "alpha_ape"));
     const char *alpha_gauss = mxmlGetOpaque(mxmlFindPath(snode, "alpha_gauss"));
+    const char *alpha_gauss_l = mxmlGetOpaque(mxmlFindPath(snode, "alpha_gauss_l"));
+    const char *alpha_gauss_s = mxmlGetOpaque(mxmlFindPath(snode, "alpha_gauss_s"));
     const char *n_ape = mxmlGetOpaque(mxmlFindPath(snode, "n_ape"));
     const char *n_gauss = mxmlGetOpaque(mxmlFindPath(snode, "n_gauss"));
+    const char *n_gauss_l = mxmlGetOpaque(mxmlFindPath(snode, "n_gauss_l"));
+    const char *n_gauss_s = mxmlGetOpaque(mxmlFindPath(snode, "n_gauss_s"));
 
     if(alpha_ape == NULL) {
       exit_tag_not_found("smearing/alpha_ape", fname);
     }
     if(alpha_gauss == NULL) {
-      exit_tag_not_found("smearing/alpha_gauss", fname);
+      alpha_gauss = alpha_gauss_l;
+      if( alpha_gauss_l == NULL || alpha_gauss_s == NULL ) {
+	exit_tag_not_found("smearing/alpha_gauss", fname);
+      }
     }
     if(n_ape == NULL) {
       exit_tag_not_found("smearing/n_ape", fname);
     }
     if(n_gauss == NULL) {
-      exit_tag_not_found("smearing/n_gauss", fname);
+      n_gauss = n_gauss_l;
+      if( n_gauss_l == NULL || n_gauss_s == NULL ) {
+	exit_tag_not_found("smearing/n_gauss", fname);
+      }
     }
 
     /* Convert to float. Check for errors */
@@ -277,7 +318,17 @@ parse_input(char fname[])
     if(e == alpha_gauss) {
       exit_convertions_error("smearing/alpha_gauss", fname, alpha_gauss);
     }
+
+    s.alpha_gauss_l = strtod(alpha_gauss_l, &e);
+    if(e == alpha_gauss_l) {
+      exit_convertions_error("smearing/alpha_gauss_l", fname, alpha_gauss_l);
+    }
     
+    s.alpha_gauss_s = strtod(alpha_gauss_s, &e);
+    if(e == alpha_gauss_s) {
+      exit_convertions_error("smearing/alpha_gauss_s", fname, alpha_gauss_s);
+    }
+
     s.n_ape = strtoul(n_ape, &e, 10);
     if(e == n_ape) {
       exit_convertions_error("smearing/n_ape", fname, n_ape);
@@ -287,6 +338,16 @@ parse_input(char fname[])
     if(e == n_gauss) {
       exit_convertions_error("smearing/n_gauss", fname, n_gauss);
     } 
+
+    s.n_gauss_l = strtoul(n_gauss_l, &e, 10);
+    if(e == n_gauss_l) {
+      exit_convertions_error("smearing/n_gauss_l", fname, n_gauss_l);
+    } 
+
+    s.n_gauss_s = strtoul(n_gauss_s, &e, 10);
+    if(e == n_gauss_s) {
+      exit_convertions_error("smearing/n_gauss_s", fname, n_gauss_s);
+      }
   }
 
   struct run_params rp;

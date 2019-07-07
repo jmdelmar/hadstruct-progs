@@ -2,15 +2,18 @@
 #define _PARSER_TYPES_H 1
 #include <qhg.h>
 #define MG_MAX_LEVELS 6
+#define NMOM 20
 
 struct source_position {
   int coords[ND];
+  int nmoms;
+  int mom_vecs[NMOM][ND-1];
   int nsinks;
   qhg_thrp_nn_sink_params *sinks;
 };
 
 struct action_params {
-  double mu, csw, kappa;
+  double mu, mu_l, mu_s, csw, kappa;
   int bc;
 };
 
@@ -26,6 +29,10 @@ struct multigrid_params {
 struct smearing_params {
   int n_gauss;
   double alpha_gauss;
+  int n_gauss_l;
+  double alpha_gauss_l;
+  int n_gauss_s;
+  double alpha_gauss_s;
   int n_ape;
   double alpha_ape;
 };
