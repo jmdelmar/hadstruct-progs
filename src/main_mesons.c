@@ -290,7 +290,7 @@ main(int argc, char *argv[])
 	    printf("Done smearing in %g sec\n", qhg_stop_watch(t0));
 
 	  // NEW: this function adds the phase to the vector
-	  qhg_phase_sequential_sink(seq_src, seq_src, mom_vec, sco, -1.0);
+	  qhg_phase_sequential_sink(seq_src, seq_src, mom_vec, sco, 1.0);
 
 	  // Set mu to correct flavor
 
@@ -462,9 +462,8 @@ main(int argc, char *argv[])
 		       rp.corr_dir, der_order, part_str[flav], srcstr, smrstr_f[flav], apestr, 
 		       thrp_snk.dt, mom_vec[0], mom_vec[1], mom_vec[2], flav_str[flav]);
 	      char *group;
-	      asprintf(&group, "thrp/%s/%s/dt%02d/%s",
-		       srcstr, proj_to_str(thrp_snk.proj),
-		       thrp_snk.dt, flav_str[flav]);
+	      asprintf(&group, "thrp/%s/dt%02d/%s",
+		       srcstr, thrp_snk.dt, flav_str[flav]);
 	      thrp.corr.lat = corr.lat;
 	      thrp.corr.site_size = corr.site_size;
 	      if(am_io_proc)
