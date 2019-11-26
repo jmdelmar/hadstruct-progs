@@ -45,7 +45,14 @@ def get_spos(repl, traj, spos_idx):
 
 def get_moms():
     moms = []
-    phase_vecs = [ [ 0, 0,  0] ]
+    phase_vecs = [ [ +1, +1, +1], \
+                   [ -1, +1, +1], \
+                   [ +1, -1, +1], \
+                   [ +1, +1, -1], \
+                   [ +1, -1, -1], \
+                   [ -1, +1, -1], \
+                   [ -1, -1, +1], \
+                   [ -1, -1, -1]  ]
 
     for phs in phase_vecs:
         moms.append(phs)
@@ -53,7 +60,7 @@ def get_moms():
 
 def get_sinks():
     sinks = []
-    for dt in 14,16,18:
+    for dt in 14,:
         for pr in "P0",:
             sinks.append(tuple([int(dt),pr]))
     return sinks
