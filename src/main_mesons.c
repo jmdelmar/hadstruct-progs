@@ -152,8 +152,8 @@ main(int argc, char *argv[])
 
     t0 = qhg_stop_watch(0);
     qhg_spinor_field *src_f[] = {src_l, src_s};
-    int n_gauss_f[] = {n_gauss_l, n_gauss_s, n_gauss_s};
-    double alpha_gauss_f[] = {alpha_gauss_l, alpha_gauss_s, alpha_gauss_s};
+    int n_gauss_f[] = {n_gauss_l, n_gauss_s, n_gauss_l};
+    double alpha_gauss_f[] = {alpha_gauss_l, alpha_gauss_s, alpha_gauss_l};
 
     if(am_io_proc)
       printf("Smearing the source\n");  
@@ -180,8 +180,11 @@ main(int argc, char *argv[])
     for(int flav=0; flav<NF-1; flav++) {
       mg_state.params.mu = flav == 0 ? rp.act.mu_l : rp.act.mu_s;
       DDalphaAMG_update_parameters(&mg_state.params, &mg_state.status);
+      mg_state.current_mu_sign = plus;
+
       for(int i=0; i<NS*NC; i++) {
-	mg_invert(sol_f[flav][i], src_f[flav][i], 1e-9, flav == 0 ? minus : plus, &mg_state);
+	mg_invert(sol_f[flav][i], src_f[flav][i], 1e-9, minus, &mg_state);
+	//mg_invert(sol_f[flav][i], src_f[flav][i], 1e-9, flav == 0 ? minus : plus, &mg_state);
       }
     }
     if(am_io_proc)
@@ -296,6 +299,7 @@ main(int argc, char *argv[])
 
 	  mg_state.params.mu = flav == 2 ? rp.act.mu_s : rp.act.mu_l;
 	  DDalphaAMG_update_parameters(&mg_state.params, &mg_state.status);
+	  mg_state.current_mu_sign = plus;
 	
 	  t0 = qhg_stop_watch(0);
 	  for(int i=0; i<NS*NC; i++) {
