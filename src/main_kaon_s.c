@@ -270,7 +270,7 @@ main(int argc, char *argv[])
 	  for(int co=0; co<NC; co++) {
 	    if(am_io_proc)
 	      printf("\tcol=%d, spin=%d\n", co, sp);
-	    qhg_gauss_smear(seq_src[CS(sp,co)], seq_src[CS(sp,co)], gf_ape, alpha_gauss_l, n_gauss_l);
+	    qhg_gauss_smear(seq_src[CS(sp,co)], seq_src[CS(sp,co)], gf_ape, alpha_gauss_s, n_gauss_s);
 	  }
 	if(am_io_proc)
 	  printf("Done smearing in %g sec\n", qhg_stop_watch(t0));
