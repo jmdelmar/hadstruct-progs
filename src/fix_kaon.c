@@ -227,8 +227,6 @@ main(int argc, char *argv[])
     // Smeared meson correlators and fourier transform
 
     t0 = qhg_stop_watch(0);
-    qhg_correlator corr_kaon = qhg_mesons_pseudoscalar(sol_sm_u, sol_sm_s, sco);
-    qhg_correlator_shift(corr_kaon, corr_kaon.origin);
     qhg_correlator corr_kaon_u = qhg_mesons_pseudoscalar(sol_u_sm_s, sol_sm_s, sco);
     qhg_correlator_shift(corr_kaon_u, corr_kaon_u.origin);
     qhg_correlator corr_kaon_s = qhg_mesons_pseudoscalar(sol_sm_u, sol_s_sm_u, sco);
@@ -241,14 +239,8 @@ main(int argc, char *argv[])
     if(true) {
       t0 = qhg_stop_watch(0);      
       char *fname;
-      asprintf(&fname, "%s/twop_kaon_%s_%s_%s.h5", rp.corr_dir, srcstr, smrstr_s, apestr);
-      char *group;
-      asprintf(&group, "twop_kaon/%s/", srcstr);
-      qhg_write_single_meson(fname, corr_kaon, group);
-      if(am_io_proc)
-	printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0)); 
-      t0 = qhg_stop_watch(0);      
       asprintf(&fname, "%s/twop_kaon_%s_%s_%s_%s.h5", rp.corr_dir, srcstr, smrstr_s, smrstr_l, apestr);
+      char *group;
       asprintf(&group, "twop_kaon/%s/", srcstr);
       qhg_write_single_meson(fname, corr_kaon_u, group);
       if(am_io_proc)
