@@ -57,6 +57,12 @@ main: main.o mg_interface.o parser.o
 mesons: main_mesons.o mg_interface.o parser.o 
 	$(CC) $(CFLAGS) -o $@ $< mg_interface.o parser.o $(LDFLAGS) $(LIBS)
 
+fix_kaon: fix_kaon.o mg_interface.o parser.o 
+	$(CC) $(CFLAGS) -o $@ $< mg_interface.o parser.o $(LDFLAGS) $(LIBS)
+
+kaon_s: main_kaon_s.o mg_interface.o parser.o 
+	$(CC) $(CFLAGS) -o $@ $< mg_interface.o parser.o $(LDFLAGS) $(LIBS)
+
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $<
