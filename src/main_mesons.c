@@ -104,12 +104,22 @@ main(int argc, char *argv[])
   qhg_spinor_field src_l[NS*NC], src_s[NS*NC];
   qhg_spinor_field sol_u[NS*NC], sol_s[NS*NC];
   qhg_spinor_field sol_sm_u[NS*NC], sol_sm_s[NS*NC];
+  // Up propagator smeared with n_gauss_s to be
+  // consistent with up part kaon 
+  // three-point functions
+  qhg_spinor_field sol_u_sm_s[NS*NC];
+  // Strange propagator smeared with n_gauss_u to be
+  // consistent with strange part of kaon 
+  // three-point functions
+  qhg_spinor_field sol_s_sm_u[NS*NC];
   for(int sp=0; sp<NS; sp++)
     for(int co=0; co<NC; co++) {
       sol_u[CS(sp,co)] = qhg_spinor_field_init(lat, bc);
       sol_s[CS(sp,co)] = qhg_spinor_field_init(lat, bc);
       sol_sm_u[CS(sp,co)] = qhg_spinor_field_init(lat, bc);
       sol_sm_s[CS(sp,co)] = qhg_spinor_field_init(lat, bc);
+      sol_u_sm_s[CS(sp,co)] = qhg_spinor_field_init(lat, bc);
+      sol_s_sm_u[CS(sp,co)] = qhg_spinor_field_init(lat, bc);
     }
 
   // APE string used in filenames
@@ -152,8 +162,8 @@ main(int argc, char *argv[])
 
     t0 = qhg_stop_watch(0);
     qhg_spinor_field *src_f[] = {src_l, src_s};
-    int n_gauss_f[] = {n_gauss_l, n_gauss_s, n_gauss_l};
-    double alpha_gauss_f[] = {alpha_gauss_l, alpha_gauss_s, alpha_gauss_l};
+    int n_gauss_f[] = {n_gauss_l, n_gauss_s, n_gauss_s};
+    double alpha_gauss_f[] = {alpha_gauss_l, alpha_gauss_s, alpha_gauss_s};
 
     if(am_io_proc)
       printf("Smearing the source\n");  
@@ -184,7 +194,6 @@ main(int argc, char *argv[])
 
       for(int i=0; i<NS*NC; i++) {
 	mg_invert(sol_f[flav][i], src_f[flav][i], 1e-9, minus, &mg_state);
-	//mg_invert(sol_f[flav][i], src_f[flav][i], 1e-9, flav == 0 ? minus : plus, &mg_state);
       }
     }
     if(am_io_proc)
@@ -209,6 +218,8 @@ main(int argc, char *argv[])
 	  printf("\tcol=%d, spin=%d\n", co, sp);  
 	qhg_gauss_smear(sol_sm_u[CS(sp,co)], sol_u[CS(sp,co)], gf_ape, alpha_gauss_l, n_gauss_l);
 	qhg_gauss_smear(sol_sm_s[CS(sp,co)], sol_s[CS(sp,co)], gf_ape, alpha_gauss_s, n_gauss_s);
+	qhg_gauss_smear(sol_u_sm_s[CS(sp,co)], sol_u[CS(sp,co)], gf_ape, alpha_gauss_s, n_gauss_s);
+	qhg_gauss_smear(sol_s_sm_u[CS(sp,co)], sol_s[CS(sp,co)], gf_ape, alpha_gauss_l, n_gauss_l);
       }
     if(am_io_proc)
       printf("Done smearing in %g sec\n", qhg_stop_watch(t0));  
@@ -220,6 +231,10 @@ main(int argc, char *argv[])
     qhg_correlator_shift(corr_pion, corr_pion.origin);
     qhg_correlator corr_kaon = qhg_mesons_pseudoscalar(sol_sm_u, sol_sm_s, sco);
     qhg_correlator_shift(corr_kaon, corr_kaon.origin);
+    qhg_correlator corr_kaon_u = qhg_mesons_pseudoscalar(sol_u_sm_s, sol_sm_s, sco);
+    qhg_correlator_shift(corr_kaon_u, corr_kaon_u.origin);
+    qhg_correlator corr_kaon_s = qhg_mesons_pseudoscalar(sol_sm_u, sol_s_sm_u, sco);
+    qhg_correlator_shift(corr_kaon_s, corr_kaon_s.origin);
     if(am_io_proc)
       printf("Done meson correlator in %g sec\n", qhg_stop_watch(t0)); 
 
@@ -234,10 +249,22 @@ main(int argc, char *argv[])
       qhg_write_single_meson(fname, corr_pion, group);
       if(am_io_proc)
 	printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0)); 
-
+      t0 = qhg_stop_watch(0);      
       asprintf(&fname, "%s/twop_kaon_%s_%s_%s.h5", rp.corr_dir, srcstr, smrstr_s, apestr);
       asprintf(&group, "twop_kaon/%s/", srcstr);      
       qhg_write_single_meson(fname, corr_kaon, group);
+      if(am_io_proc)
+	printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0)); 
+      t0 = qhg_stop_watch(0);      
+      asprintf(&fname, "%s/twop_kaon_%s_%s_%s_%s.h5", rp.corr_dir, srcstr, smrstr_s, smrstr_l, apestr);
+      asprintf(&group, "twop_kaon/%s/", srcstr);
+      qhg_write_single_meson(fname, corr_kaon_u, group);
+      if(am_io_proc)
+	printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0)); 
+      t0 = qhg_stop_watch(0);      
+      asprintf(&fname, "%s/twop_kaon_%s_%s_%s_%s.h5", rp.corr_dir, srcstr, smrstr_l, smrstr_s, apestr);
+      asprintf(&group, "twop_kaon/%s/", srcstr);
+      qhg_write_single_meson(fname, corr_kaon_s, group);
       if(am_io_proc)
 	printf("Wrote %s in %g sec\n", fname, qhg_stop_watch(t0)); 
       free(fname);
@@ -245,6 +272,8 @@ main(int argc, char *argv[])
     }
     qhg_correlator_finalize(corr_pion);
     qhg_correlator_finalize(corr_kaon);
+    qhg_correlator_finalize(corr_kaon_u);
+    qhg_correlator_finalize(corr_kaon_s);
         
     // Allocate sequential source and solution
 
@@ -530,7 +559,9 @@ main(int argc, char *argv[])
     qhg_spinor_field_finalize(sol_s[i]);
     qhg_spinor_field_finalize(sol_sm_u[i]);
     qhg_spinor_field_finalize(sol_sm_s[i]);
-  }
+    qhg_spinor_field_finalize(sol_u_sm_s[i]);
+    qhg_spinor_field_finalize(sol_s_sm_u[i]);
+ }
 
   qhg_gauge_field_finalize(gf);  
   qhg_gauge_field_finalize(gf_ape);  
