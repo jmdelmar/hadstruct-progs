@@ -9,7 +9,7 @@ nsrc = 32
 #
 # seed for different replicas
 #
-seeds = {"0": 290159766,
+seeds = {"0": 309602186213466,
          "1": 127301172,
          "2": 651320871,}
 
@@ -33,7 +33,7 @@ with open( sys.argv[1], 'w' ) as src_file:
         i = 0
         while i < nsrc:
 
-            src = "sx%02dsy%02dsz%02dst%03d" % (rpos())
+            src = "sx%02dsy%02dsz%02dst%02d" % (rpos())
 
             if src not in old_src:
 

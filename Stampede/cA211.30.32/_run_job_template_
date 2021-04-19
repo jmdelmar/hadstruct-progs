@@ -1,0 +1,77 @@
+#! /bin/bash
+#SBATCH -J _CONF_._SRC_.cA211.30.32.mesons
+#SBATCH -o /scratch/04503/tg838024/cA211.30.32/log/_CONF_/%x.%j.out
+#SBATCH -e /scratch/04503/tg838024/cA211.30.32/log/_CONF_/%x.%j.err
+#SBATCH -p skx-normal
+#SBATCH -N 12
+#SBATCH -n 512
+#SBATCH -t 20:00:00
+#SBATCH -D /scratch/04503/tg838024/cA211.30.32
+
+conf="_CONF_"
+s=_SRC_
+
+# Offset times to avoid race condition 
+# on reading gauge configuration
+# in case multiple jobs are started
+# at the same time
+let sleep_time=s*5
+sleep ${sleep_time}
+
+ENSEMBLE=cA211.30.32
+SCRATCH=/scratch/04503/tg838024
+
+RUN_DIR=${SCRATCH}/${ENSEMBLE}
+CORR_DIR=${RUN_DIR}/Corr        
+PROP_DIR=${RUN_DIR}/Props
+HAD_DIR=${HOME}/SKX/hadstruct-progs
+BIN_DIR=${HAD_DIR}/src
+BIN=mesons
+
+INI_DIR=${HAD_DIR}/Stampede/${ENSEMBLE}/ini
+RUN_INI_DIR=${RUN_DIR}/ini
+INI_FILE=${conf}.${s}.ini.xml
+
+cd ${RUN_DIR}
+
+module load intel/18.0.2
+module load impi/18.0.2
+module load phdf5/1.10.4
+#module load intel/17.0.4
+#module load phdf5/1.8.16
+#module load impi/17.0.3
+
+export LD_LIBRARY_PATH=${HOME}/SKX/install/lib:${LD_LIBRARY_PATH}
+
+mkdir -p ${CORR_DIR}/${conf}
+mkdir -p ${PROP_DIR}/${conf}
+mkdir -p ${RUN_INI_DIR}/
+
+RUN_CMD="ibrun ${BIN_DIR}/${BIN} ${INI_DIR}/${INI_FILE}"
+
+date
+
+echo "Run command is:"
+echo "${RUN_CMD}"
+
+MAX_RETRY=12
+
+i=0
+
+RESULT=1
+
+while [ ${i} -lt ${MAX_RETRY} ] && [ ${RESULT} -ne 0 ]; do
+
+    eval ${RUN_CMD}
+
+    RESULT=$?
+
+    echo "Retry ${i}"
+
+    let i=i+1
+
+done
+
+date
+
+

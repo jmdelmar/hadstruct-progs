@@ -59,7 +59,7 @@ def get_moms():
 
 def get_sinks():
     sinks = []
-    for dt in 14,16,18:
+    for dt in 12,14,16,18:
         for pr in "P0",:
             sinks.append(tuple([int(dt),pr]))
     return sinks
