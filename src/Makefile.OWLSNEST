@@ -1,9 +1,10 @@
-AR=ar
+B65;6200;1cAR=ar
 RANLIB=ranlib
 CC=mpiicc
 
 #... Adjust according to compiler
-CFLAGS=-O3 -D_GNU_SOURCE -I./ -std=gnu99 -fopenmp -xCORE-AVX2
+#CFLAGS=-O3 -D_GNU_SOURCE -I./ -std=gnu99 -fopenmp -xCORE-AVX2
+CFLAGS=-O3 -D_GNU_SOURCE -I./ -std=gnu99 -fopenmp
 
 #... Path to qhg.h
 QHG_INC=-I$(HOME)/QuaHoG/lib
@@ -26,7 +27,8 @@ HDF5_INC=-I$(HDF5_BASE)/include
 CFLAGS+=$(HDF5_INC)
 
 #... Paths to libraries
-LDFLAGS="-xCORE-AVX2"
+#LDFLAGS="-xCORE-AVX2"
+LDFLAGS=""
 
 #... Path to libqhg.a
 QHG_LIB=-L$(HOME)/QuaHoG/lib
@@ -55,6 +57,9 @@ main: main.o mg_interface.o parser.o
 	$(CC) $(CFLAGS) -o $@ $< mg_interface.o parser.o $(LDFLAGS) $(LIBS)
 
 mesons: main_mesons.o mg_interface.o parser.o 
+	$(CC) $(CFLAGS) -o $@ $< mg_interface.o parser.o $(LDFLAGS) $(LIBS)
+
+mesons_correct_smearing: main_mesons_correct_smearing.o mg_interface.o parser.o 
 	$(CC) $(CFLAGS) -o $@ $< mg_interface.o parser.o $(LDFLAGS) $(LIBS)
 
 fix_kaon: fix_kaon.o mg_interface.o parser.o 
